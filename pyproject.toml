@@ -1,0 +1,20 @@
+[project]
+name = "pytest_template"
+version = "0.1.0"
+description = "Template of a project with pytest"
+authors = [{ name = "Hyunjun Nam", email = "nhj717@hotmail.com" }]
+dependencies = ["numpy"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "pytest-cov",
+    # "tox",         # optionally include multi-environment test runner
+]
