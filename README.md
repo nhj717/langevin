@@ -1,4 +1,4 @@
-# Fiber Mode Calculation
+# Template for projects with pytest
 
 After cloning the repository, install the project in "editable" mode for development:
 
