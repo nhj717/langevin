@@ -21,14 +21,14 @@ def coord_trafo(A, theta):
     return B
 
 
-def initial_setup(mode_number):
+def initial_setup(mode_number,polarization):
     wavelength = 1.0e-6
     diameter = 40e-6
-    return wavelength, diameter, mode_number
+    return wavelength, diameter, mode_number,polarization
 
 
 class OAM_profile:
-    def __init__(self, wavelength, diameter, mode_number):
+    def __init__(self, wavelength, diameter, mode_number,polarization):
         # set initial values
         self.c = const.c
         self.mu0 = const.mu_0
@@ -37,7 +37,7 @@ class OAM_profile:
         self.k = 2 * np.pi / wavelength
         self.w0 = self.c * self.k
         self.a = diameter / 2
-
+        self.polarization = np.array(polarization)
         self.l = mode_number
         self.u_lm = float(sp.jn_zeros(self.l, 1))
         self.beta = (
@@ -73,69 +73,50 @@ class OAM_profile:
             + (1j) * self.l * sp.jve(self.l, self.u_lm * r / self.a) * np.cos(phi) / r
         ) * np.exp(1j * self.l * phi)
 
-    def fields_xpol(self):
+    def fields(self):
         xxx, yyy, zzz = np.meshgrid(self.x, self.y, self.z, indexing="ij")
-        self.xxx = xxx
-        self.yyy = yyy
-        self.zzz = zzz
         rrr = np.sqrt(xxx**2 + yyy**2)
         ppphi = np.arctan2(yyy, xxx)
-        E_cart = np.zeros(
+        self.ppphi = ppphi
+        Ex_cart = np.zeros(
             (3, len(self.x), len(self.y), len(self.z)), dtype="complex128"
         )
-        B_cart = np.zeros_like(E_cart, dtype="complex128")
+        Ey_cart = np.zeros_like(Ex_cart, dtype="complex128")
+        Bx_cart = np.zeros_like(Ex_cart, dtype="complex128")
+        By_cart = np.zeros_like(Ex_cart, dtype="complex128")
 
-        E_cart[0, :] = self.u(rrr, ppphi)
-        E_cart[1, :] = 0
-        E_cart[2, :] = 1j / self.beta * self.dxu(rrr, ppphi)
-        E_cart = (1j) * self.w0 * E_cart * np.exp(1j * self.beta * zzz)
+        Ex_cart[0, :] = self.u(rrr, ppphi)
+        Ex_cart[1, :] = 0
+        Ex_cart[2, :] = 1j / self.beta * self.dxu(rrr, ppphi)
+        Ex_cart = (1j) * self.w0 * Ex_cart * np.exp(1j * self.beta * zzz)
 
-        B_cart[0, :] = 0
-        B_cart[1, :] = self.u(rrr, ppphi)
-        B_cart[2, :] = 1j / self.beta * self.dyu(rrr, ppphi)
-        B_cart = (1j) * self.beta * B_cart * np.exp(1j * self.beta * zzz)
+        Ey_cart[0, :] = 0
+        Ey_cart[1, :] = self.u(rrr, ppphi)
+        Ey_cart[2, :] = 1j / self.beta * self.dyu(rrr, ppphi)
+        Ey_cart = (1j) * self.w0 * Ey_cart * np.exp(1j * self.beta * zzz)
 
-        S = np.real(np.cross(E_cart, np.conjugate(B_cart), axis=0))
-        S_cyl = coord_trafo(S, ppphi)
+        Bx_cart[0, :] = 0
+        Bx_cart[1, :] = self.u(rrr, ppphi)
+        Bx_cart[2, :] = 1j / self.beta * self.dyu(rrr, ppphi)
+        Bx_cart = (1j) * self.beta * Bx_cart * np.exp(1j * self.beta * zzz)
 
-        I = np.real(E_cart * np.conjugate(E_cart))
-        I = np.sqrt(I[0, :] ** 2 + I[1, :] ** 2 + I[2, :] ** 2)
+        By_cart[0, :] = - self.u(rrr, ppphi)
+        By_cart[1, :] = 0
+        By_cart[2, :] = -1j / self.beta * self.dxu(rrr, ppphi)
+        By_cart = 1j * self.beta * By_cart * np.exp(1j * self.beta * zzz)
+        return Ex_cart, Ey_cart, Bx_cart, By_cart
 
-        self.S = S
-        self.S_cyl = S_cyl
-        self.I = I
+    def S_and_I(self):
+        Ex , Ey, Bx, By = self.fields()
+        polarization = self.polarization/np.linalg.norm(self.polarization)
+        print(polarization[0])
+        print(polarization[1])
+        E_cart = polarization[0]*Ex+polarization[1]*Ey
+        B_cart = polarization[0]*Bx+polarization[1]*By
 
-    def fields_lcp(self):
-        xxx, yyy, zzz = np.meshgrid(self.x, self.y, self.z, indexing="ij")
-        self.zzz = zzz
-        rrr = np.sqrt(xxx**2 + yyy**2)
-        ppphi = np.arctan2(xxx, yyy)
-        E_cart = np.zeros(
-            (3, len(self.x), len(self.y), len(self.z)), dtype="complex128"
+        S = (np.real(np.cross(E_cart, np.conjugate(B_cart), axis=0))
         )
-        B_cart = np.zeros_like(E_cart, dtype="complex128")
-
-        E_cart[0, :] = self.u(rrr, ppphi)
-        E_cart[1, :] = 1j * self.u(rrr, ppphi)
-        E_cart[2, :] = (
-            1 / self.beta * (self.dxu(rrr, ppphi) + 1j * self.dyu(rrr, ppphi))
-        )
-        E_cart = (1j) * self.w0 * E_cart * np.exp(1j * self.beta * zzz)
-
-        B_cart[0, :] = -1j * self.u(rrr, ppphi)
-        B_cart[1, :] = self.u(rrr, ppphi)
-        B_cart[2, :] = (
-            1 / self.beta * (self.dxu(rrr, ppphi) + 1j * self.dyu(rrr, ppphi))
-        )
-        B_cart = (1j) * self.beta * B_cart * np.exp(1j * self.beta * zzz)
-
-        S = (
-            self.c
-            * self.eps0
-            / 2
-            * np.real(np.cross(E_cart, np.conjugate(B_cart), axis=0))
-        )
-        S_cyl = coord_trafo(S, ppphi)
+        S_cyl = coord_trafo(S, self.ppphi)
         I = np.real(E_cart * np.conjugate(E_cart))
         I = self.c * self.eps0 / 2 * np.sqrt(I[0, :] ** 2 + I[1, :] ** 2 + I[2, :] ** 2)
 
@@ -143,72 +124,6 @@ class OAM_profile:
         self.S_cyl = S_cyl
         self.I = I
 
-    def fields_rcp(self):
-        xxx, yyy, zzz = np.meshgrid(self.x, self.y, self.z, indexing="ij")
-        self.zzz = zzz
-        rrr = np.sqrt(xxx**2 + yyy**2)
-        ppphi = np.arctan2(yyy, xxx)
-        E_cart = np.zeros(
-            (3, len(self.x), len(self.y), len(self.z)), dtype="complex128"
-        )
-        B_cart = np.zeros_like(E_cart, dtype="complex128")
-
-        E_cart[0, :] = self.u(rrr, ppphi)
-        E_cart[1, :] = -1j * self.u(rrr, ppphi)
-        E_cart[2, :] = (
-            1 / self.beta * (1j * self.dxu(rrr, ppphi) + self.dyu(rrr, ppphi))
-        )
-        E_cart = (1j) * self.w0 * E_cart * np.exp(1j * self.beta * zzz)
-
-        B_cart[0, :] = 1j * self.u(rrr, ppphi)
-        B_cart[1, :] = self.u(rrr, ppphi)
-        B_cart[2, :] = (
-            1j / self.beta * (1j * self.dxu(rrr, ppphi) + self.dyu(rrr, ppphi))
-        )
-        B_cart = (1j) * self.beta * B_cart * np.exp(1j * self.beta * zzz)
-
-        S = (
-            self.c
-            * self.eps0
-            / 2
-            * np.real(np.cross(E_cart, np.conjugate(B_cart), axis=0))
-        )
-        S_cyl = coord_trafo(S, ppphi)
-        I = np.real(E_cart * np.conjugate(E_cart))
-        I = self.c * self.eps0 / 2 * np.sqrt(I[0, :] ** 2 + I[1, :] ** 2 + I[2, :] ** 2)
-
-        self.S = S
-        self.S_cyl = S_cyl
-        self.I = I
-
-    def fields_ypol(self):
-        xxx, yyy, zzz = np.meshgrid(self.x, self.y, self.z, indexing="ij")
-        self.zzz = zzz
-        rrr = np.sqrt(xxx**2 + yyy**2)
-        ppphi = np.arctan2(yyy, xxx)
-        E_cart = np.zeros(
-            (3, len(self.x), len(self.y), len(self.z)), dtype="complex128"
-        )
-        B_cart = np.zeros_like(E_cart, dtype="complex128")
-
-        E_cart[0, :] = 0
-        E_cart[1, :] = self.u(rrr, ppphi)
-        E_cart[2, :] = 1j / self.beta * self.dyu(rrr, ppphi)
-        E_cart = (1j) * self.w0 * E_cart * np.exp(1j * self.beta * zzz)
-
-        B_cart[0, :] = -1j * self.beta * self.u(rrr, ppphi)
-        B_cart[1, :] = 0
-        B_cart[2, :] = -self.dxu(rrr, ppphi)
-        B_cart = B_cart * np.exp(1j * self.beta * zzz)
-
-        S = np.real(np.cross(E_cart, np.conjugate(B_cart), axis=0))
-        S_cyl = coord_trafo(S, ppphi)
-        I = np.real(E_cart * np.conjugate(E_cart))
-        I = self.c * self.eps0 / 2 * np.sqrt(I[0, :] ** 2 + I[1, :] ** 2 + I[2, :] ** 2)
-
-        self.S = S
-        self.S_cyl = S_cyl
-        self.I = I
 
     def plot_field_dist(self):
 
