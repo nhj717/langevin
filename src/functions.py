@@ -65,8 +65,8 @@ class OAM_profile:
         ) * np.exp(1j * self.l * phi)
 
     def fields(self):
+        beta = self.beta
         xxx, yyy, zzz = np.meshgrid(self.x, self.y, self.z, indexing="ij")
-        self.zzz = zzz
         rrr = np.sqrt(xxx**2 + yyy**2)
         ppphi = np.arctan2(yyy, xxx)
         self.ppphi = ppphi
@@ -79,32 +79,27 @@ class OAM_profile:
 
         Ex_cart[0, :] = self.u(rrr, ppphi)
         Ex_cart[1, :] = 0
-        Ex_cart[2, :] = 1j / self.beta * self.dxu(rrr, ppphi)
-        Ex_cart = (1j) * self.w0 * Ex_cart * np.exp(1j * self.beta * zzz)
+        Ex_cart[2, :] = 1j / beta * self.dxu(rrr, ppphi)
+        Ex_cart = (1j) * self.w0 * Ex_cart * np.exp(1j * beta * zzz)
 
         Ey_cart[0, :] = 0
         Ey_cart[1, :] = self.u(rrr, ppphi)
-        Ey_cart[2, :] = 1j / self.beta * self.dyu(rrr, ppphi)
-        Ey_cart = (1j) * self.w0 * Ey_cart * np.exp(1j * self.beta * zzz)
+        Ey_cart[2, :] = 1j / beta * self.dyu(rrr, ppphi)
+        Ey_cart = (1j) * self.w0 * Ey_cart * np.exp(1j * beta * zzz)
 
         Bx_cart[0, :] = 0
         Bx_cart[1, :] = self.u(rrr, ppphi)
-        Bx_cart[2, :] = 1j / self.beta * self.dyu(rrr, ppphi)
-        Bx_cart = (1j) * self.beta * Bx_cart * np.exp(1j * self.beta * zzz)
+        Bx_cart[2, :] = 1j / beta * self.dyu(rrr, ppphi)
+        Bx_cart = (1j) * beta * Bx_cart * np.exp(1j * beta * zzz)
 
         By_cart[0, :] = -self.u(rrr, ppphi)
         By_cart[1, :] = 0
-        By_cart[2, :] = -1j / self.beta * self.dxu(rrr, ppphi)
-        By_cart = 1j * self.beta * By_cart * np.exp(1j * self.beta * zzz)
+        By_cart[2, :] = -1j / beta * self.dxu(rrr, ppphi)
+        By_cart = 1j * beta * By_cart * np.exp(1j * beta * zzz)
         return Ex_cart, Ey_cart, Bx_cart, By_cart
 
-    def standing_S_and_I(self):
+    def S_and_I(self):
         Ex, Ey, Bx, By = self.fields()
-        zzz = self.zzz
-        Ex = Ex + Ex * np.exp(-2j * self.beta * zzz)
-        Ey = Ey + Ey * np.exp(-2j * self.beta * zzz)
-        Bx = Bx + Bx * np.exp(-2j * self.beta * zzz)
-        By = By + By * np.exp(-2j * self.beta * zzz)
         polarization = self.polarization / np.linalg.norm(self.polarization)
         print(polarization[0])
         print(polarization[1])
@@ -120,8 +115,47 @@ class OAM_profile:
         self.S_cyl = S_cyl
         self.I = I
 
-    def S_and_I(self):
+    def counter_fields(self):
+        beta = -self.beta
+        xxx, yyy, zzz = np.meshgrid(self.x, self.y, self.z, indexing="ij")
+        rrr = np.sqrt(xxx**2 + yyy**2)
+        ppphi = np.arctan2(yyy, xxx)
+        self.ppphi = ppphi
+        Ex_cart = np.zeros(
+            (3, len(self.x), len(self.y), len(self.z)), dtype="complex128"
+        )
+        Ey_cart = np.zeros_like(Ex_cart, dtype="complex128")
+        Bx_cart = np.zeros_like(Ex_cart, dtype="complex128")
+        By_cart = np.zeros_like(Ex_cart, dtype="complex128")
+
+        Ex_cart[0, :] = self.u(rrr, ppphi)
+        Ex_cart[1, :] = 0
+        Ex_cart[2, :] = 1j / beta * self.dxu(rrr, ppphi)
+        Ex_cart = (1j) * self.w0 * Ex_cart * np.exp(1j * beta * zzz)
+
+        Ey_cart[0, :] = 0
+        Ey_cart[1, :] = self.u(rrr, ppphi)
+        Ey_cart[2, :] = 1j / beta * self.dyu(rrr, ppphi)
+        Ey_cart = (1j) * self.w0 * Ey_cart * np.exp(1j * beta * zzz)
+
+        Bx_cart[0, :] = 0
+        Bx_cart[1, :] = self.u(rrr, ppphi)
+        Bx_cart[2, :] = 1j / beta * self.dyu(rrr, ppphi)
+        Bx_cart = (1j) * beta * Bx_cart * np.exp(1j * beta * zzz)
+
+        By_cart[0, :] = -self.u(rrr, ppphi)
+        By_cart[1, :] = 0
+        By_cart[2, :] = -1j / beta * self.dxu(rrr, ppphi)
+        By_cart = 1j * beta * By_cart * np.exp(1j * beta * zzz)
+        return Ex_cart, Ey_cart, Bx_cart, By_cart
+
+    def standing_S_and_I(self):
         Ex, Ey, Bx, By = self.fields()
+        Ex_count, Ey_count, Bx_count, By_count = self.counter_fields()
+        Ex += Ex_count
+        Ey += Ey_count
+        Bx += Bx_count
+        By += By_count
         polarization = self.polarization / np.linalg.norm(self.polarization)
         print(polarization[0])
         print(polarization[1])
@@ -151,7 +185,7 @@ class OAM_profile:
         circle = plt.Circle(
             (0, 0), self.a, fill=False, color="black", linewidth=1, linestyle="--"
         )
-        z_target = 0
+        z_target = 0 * self.lamb / 8
         zi = (np.abs(self.z - z_target)).argmin()
 
         S_theta_max = np.max(abs(self.S_cyl[1, :, :, zi]))
