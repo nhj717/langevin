@@ -4,15 +4,6 @@ from scipy import special as sp
 from matplotlib import pyplot as plt
 
 
-def normalize(A):
-    for i in range(np.shape(A)[0]):
-        for j in range(np.shape(A)[-1]):
-            if np.max(abs(A[i, :, :, j])) != 0:
-                A[i, :, :, j] = A[i, :, :, j] / np.max(abs(A[:, :, :, j]))
-
-    return A
-
-
 def coord_trafo(A, theta):
     B = np.zeros_like(A, dtype="complex128")
     B[0, :] = A[0, :] * np.cos(theta) + A[1, :] * np.sin(theta)
@@ -21,14 +12,14 @@ def coord_trafo(A, theta):
     return B
 
 
-def initial_setup(mode_number,polarization):
+def initial_setup(mode_number, polarization):
     wavelength = 1.0e-6
     diameter = 40e-6
-    return wavelength, diameter, mode_number,polarization
+    return wavelength, diameter, mode_number, polarization
 
 
 class OAM_profile:
-    def __init__(self, wavelength, diameter, mode_number,polarization):
+    def __init__(self, wavelength, diameter, mode_number, polarization):
         # set initial values
         self.c = const.c
         self.mu0 = const.mu_0
@@ -75,6 +66,7 @@ class OAM_profile:
 
     def fields(self):
         xxx, yyy, zzz = np.meshgrid(self.x, self.y, self.z, indexing="ij")
+        self.zzz = zzz
         rrr = np.sqrt(xxx**2 + yyy**2)
         ppphi = np.arctan2(yyy, xxx)
         self.ppphi = ppphi
@@ -100,22 +92,26 @@ class OAM_profile:
         Bx_cart[2, :] = 1j / self.beta * self.dyu(rrr, ppphi)
         Bx_cart = (1j) * self.beta * Bx_cart * np.exp(1j * self.beta * zzz)
 
-        By_cart[0, :] = - self.u(rrr, ppphi)
+        By_cart[0, :] = -self.u(rrr, ppphi)
         By_cart[1, :] = 0
         By_cart[2, :] = -1j / self.beta * self.dxu(rrr, ppphi)
         By_cart = 1j * self.beta * By_cart * np.exp(1j * self.beta * zzz)
         return Ex_cart, Ey_cart, Bx_cart, By_cart
 
-    def S_and_I(self):
-        Ex , Ey, Bx, By = self.fields()
-        polarization = self.polarization/np.linalg.norm(self.polarization)
+    def standing_S_and_I(self):
+        Ex, Ey, Bx, By = self.fields()
+        zzz = self.zzz
+        Ex = Ex + Ex * np.exp(-2j * self.beta * zzz)
+        Ey = Ey + Ey * np.exp(-2j * self.beta * zzz)
+        Bx = Bx + Bx * np.exp(-2j * self.beta * zzz)
+        By = By + By * np.exp(-2j * self.beta * zzz)
+        polarization = self.polarization / np.linalg.norm(self.polarization)
         print(polarization[0])
         print(polarization[1])
-        E_cart = polarization[0]*Ex+polarization[1]*Ey
-        B_cart = polarization[0]*Bx+polarization[1]*By
+        E_cart = polarization[0] * Ex + polarization[1] * Ey
+        B_cart = polarization[0] * Bx + polarization[1] * By
 
-        S = (np.real(np.cross(E_cart, np.conjugate(B_cart), axis=0))
-        )
+        S = np.real(np.cross(E_cart, np.conjugate(B_cart), axis=0))
         S_cyl = coord_trafo(S, self.ppphi)
         I = np.real(E_cart * np.conjugate(E_cart))
         I = self.c * self.eps0 / 2 * np.sqrt(I[0, :] ** 2 + I[1, :] ** 2 + I[2, :] ** 2)
@@ -124,6 +120,22 @@ class OAM_profile:
         self.S_cyl = S_cyl
         self.I = I
 
+    def S_and_I(self):
+        Ex, Ey, Bx, By = self.fields()
+        polarization = self.polarization / np.linalg.norm(self.polarization)
+        print(polarization[0])
+        print(polarization[1])
+        E_cart = polarization[0] * Ex + polarization[1] * Ey
+        B_cart = polarization[0] * Bx + polarization[1] * By
+
+        S = np.real(np.cross(E_cart, np.conjugate(B_cart), axis=0))
+        S_cyl = coord_trafo(S, self.ppphi)
+        I = np.real(E_cart * np.conjugate(E_cart))
+        I = self.c * self.eps0 / 2 * np.sqrt(I[0, :] ** 2 + I[1, :] ** 2 + I[2, :] ** 2)
+
+        self.S = S
+        self.S_cyl = S_cyl
+        self.I = I
 
     def plot_field_dist(self):
 
