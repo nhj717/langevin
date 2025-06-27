@@ -187,8 +187,9 @@ class OAM_profile:
         )
         z_target = 0 * self.lamb / 8
         zi = (np.abs(self.z - z_target)).argmin()
-
+        S_r_max = np.max(abs(self.S_cyl[0, :, :, zi]))
         S_theta_max = np.max(abs(self.S_cyl[1, :, :, zi]))
+        print(f"Value of S_r is {S_r_max * 1E-19} a.u.")
         print(f"Value of S_theta is {S_theta_max*1E-19} a.u.")
 
         I_zi = I[:, :, zi] / np.max(I[:, :, zi])
