@@ -18,6 +18,10 @@ def initial_setup(mode_number, polarization):
     return wavelength, diameter, mode_number, polarization
 
 
+def gaussian_standing_wave():
+    return fx, fy, fz
+
+
 class OAM_profile:
     def __init__(self, wavelength, diameter, mode_number, polarization):
         # set initial values
