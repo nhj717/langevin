@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.constants as const
 import scipy.fft as fft
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import beam_profile
 
@@ -14,6 +15,13 @@ def gamma(radius, density, cross_section, eta, pressure, T):
     return gamma
 
 
+def lorentzian(x, x0, a, gamma):
+    x0 = 2 * np.pi * x0
+    x = 2 * np.pi * x
+    gamma = 2 * np.pi * gamma
+    return a * gamma / ((x0**2 - x**2) ** 2 + (x * gamma) ** 2)
+
+
 class Langevin:
     def __init__(self):
         # units
@@ -25,17 +33,17 @@ class Langevin:
         # physical values
         self.wl = 1.064 * um
         self.k = 2 * np.pi / self.wl
-        self.T = 273  # kelvins
-        radius = 300 / 2 * nm
+        self.T = 300  # kelvins
+        radius = 500 / 2 * nm
         density = 2.2e3  # kgm-3
         cross_section = (
             np.pi * (0.36 * nm) ** 2
         )  # mean cross-section of the air molecules
-        pressure = 0.5 * mbar
+        pressure = 0.1 * mbar
         eta = 2.791 * 1e-7 * self.T**0.7355  # viscosity coefficient of the air    m^2/s
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
-        self.P = 500 * mW
+        self.P = 100 * mW
         self.r_core = 20 * um
         eps_glass = 3.9
         alpha0 = (
@@ -45,8 +53,8 @@ class Langevin:
             1 - 1j * alpha0 * self.k**3 / (6 * np.pi * const.epsilon_0)
         )
 
-        self.t_f = 1e-1  # final time in sec
-        self.delt = 1e-6  # resoltion of the time array
+        self.t_f = 1e-2  # final time in sec
+        self.delt = 1e-5  # resoltion of the time array
         self.t = np.arange(0, self.t_f, self.delt)
         self.array_size = np.size(self.t)
         self.f = np.linspace(0, 1 / self.delt, self.array_size)
@@ -69,16 +77,17 @@ class Langevin:
 
         x = np.zeros((2, self.array_size))
         v = np.zeros_like(x)
-        x[:, 0] = x0
+        x[:, 0] = [1e-11, 1e-11]
         v[:, 0] = v0
 
         for i in range(self.array_size - 1):
             theta = np.arctan2(x[1, i], x[0, i])
             f_opt = np.array([np.cos(theta), np.sin(theta)]) * f_opt_r(x[0, i], x[1, i])
             v[:, i + 1] = v[:, i] + self.delt * (
-                -self.gamma0 * v[:, i] + f_opt / self.m + f_therm[i]
+                -self.gamma0 * v[:, i] + f_opt / self.m + f_therm[i] * 0
             )
             x[:, i + 1] = x[:, i] + v[:, i + 1] * self.delt
+            check = f_opt / self.m
         self.x = x
         self.v = v
 
@@ -94,7 +103,22 @@ class Langevin:
 
         x_fft = fft.fft(self.x[0, :])
         x_fft = fft.fftshift(x_fft)
-        plt.plot(self.f, x_fft * 1e-3)
-        plt.xlabel("f [kHz]")
+        x_fft = abs(x_fft)
+        lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
+            lorentzian, self.f, x_fft, p0=[5e5, 1e5, 1000], maxfev=100000
+        )
+        x_fft_fit = lorentzian(
+            self.f,
+            lorentzian_fit_coeff[0],
+            lorentzian_fit_coeff[1],
+            lorentzian_fit_coeff[2],
+        )
+
+        plt.plot(self.f, np.log10(x_fft))
+        plt.plot(self.f, np.log10(x_fft_fit))
+        plt.xlabel("f [Hz]")
         plt.ylabel("S [a.u.]")
         plt.show(block=True)
+        print(
+            f"Actual gamma0 is {self.gamma0} and the calculated gamma0 is {lorentzian_fit_coeff[2]}Hz"
+        )
