@@ -18,8 +18,21 @@ def initial_setup(mode_number, polarization):
     return wavelength, diameter, mode_number, polarization
 
 
-def gaussian_standing_wave():
-    return fx, fy, fz
+def gaussian_standing_wave(P, r_core, alpha):
+    u01 = sp.jn_zeros(0, 1)
+    factor = (
+        -P
+        * np.real(alpha)
+        * u01
+        / (np.pi * r_core**3 * const.c * const.epsilon_0 * sp.jve(1, u01) ** 2)
+    )
+    f_r = (
+        lambda x, y: factor
+        * sp.jve(0, u01 * np.sqrt(x**2 + y**2) / r_core)
+        * sp.jve(1, u01 * np.sqrt(x**2 + y**2) / r_core)
+    )
+    f_phi = lambda x, y: 0
+    return f_r, f_phi
 
 
 class OAM_profile:
