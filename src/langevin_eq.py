@@ -84,7 +84,7 @@ class Langevin:
 
         x = np.zeros((3, self.array_size))
         v = np.zeros_like(x)
-        x[:, 0] = [1e-9, 1e-9, -1e-10]
+        x[:, 0] = [1e-10, 1e-10, 1e-11]
         v[:, 0] = v0
 
         for i in range(self.array_size - 1):
