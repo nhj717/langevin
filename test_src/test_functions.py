@@ -1,5 +1,6 @@
 from beam_profile import *
 from langevin_eq import *
+from langevin_averaged import *
 
 
 def test_field_distribution():
@@ -15,4 +16,12 @@ def test_langevin_eq():
     sim.langevin_eq()
     sim.plot_x()
     sim.plot_z()
+    sim.plot_spectrums()
+
+
+def test_langevin_averaged():
+    sim = Langevin_averaged()
+    sim.run_iteration()
+    # sim.plot_x()
+    # sim.plot_z()
     sim.plot_spectrums()

@@ -23,7 +23,7 @@ def lorentzian(x, x0, a, gamma):
     return a * gamma / ((x0**2 - x**2) ** 2 + (x * gamma) ** 2)
 
 
-class Langevin:
+class Langevin_averaged:
     def __init__(self):
         # units
         mW = 1e-3
@@ -45,7 +45,7 @@ class Langevin:
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
         self.P = 500 * mW  # power on each side
-        self.r_core = 20 * um
+        self.r_core = 22 * um
         self.beta = (
             2
             * np.pi
@@ -61,14 +61,16 @@ class Langevin:
         )
 
         t_f = 1e-2  # final time in sec
-        # Number of sample points
-        self.N = int(1e5)
-        # sample spacing
+        self.iteration = 100  # number of iterations
+        self.N = int(5e5)  # Number of sample points
         self.delt = 1e-7  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
         self.array_size = np.size(self.t)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
         self.omega = 2 * np.pi * self.f
+
+        self.x = np.zeros((self.iteration, 3, self.N))
+        self.v = np.zeros_like(self.x)
 
     def langevin_eq(self):
         x0 = np.zeros(3)  # initial position in m
@@ -98,8 +100,14 @@ class Langevin:
             )
             x[:, i + 1] = x[:, i] + v[:, i + 1] * self.delt
             check = f_opt / self.m
-        self.x = x
-        self.v = v
+        return x, v
+
+    def run_iteration(self):
+        for i in range(self.iteration):
+            self.x[i], self.v[i] = Langevin_averaged.langevin_eq(self)
+            print(i)
+        self.x = np.average(self.x, axis=0)
+        self.v = np.average(self.v, axis=0)
 
     def plot_x(self):
         plt.plot(self.t, self.x[0, :])
