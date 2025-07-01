@@ -24,7 +24,7 @@ def lorentzian(x, x0, a, gamma):
 
 
 class Langevin_averaged:
-    def __init__(self,iteration):
+    def __init__(self, iteration):
         # units
         mW = 1e-3
         um = 1e-6
@@ -80,7 +80,9 @@ class Langevin_averaged:
             self.P, self.r_core, self.alpha, self.beta
         )
         # Thermal force
-        noise = np.random.randn((3,self.N))
+        noise = np.array(
+            [np.random.randn(self.N), np.random.randn(self.N), np.random.randn(self.N)]
+        )  # noise
         f_therm = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m) * noise
 
         x = np.zeros((3, self.N))

@@ -40,11 +40,11 @@ class Langevin:
         cross_section = (
             np.pi * (0.36 * nm) ** 2
         )  # mean cross-section of the air molecules
-        pressure = 10 * mbar
+        pressure = 1 * mbar
         eta = 2.791 * 1e-7 * self.T**0.7355  # viscosity coefficient of the air    m^2/s
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
-        self.P = 500 * mW  # power on each side
+        self.P = 2000 * mW  # power on each side
         self.r_core = 20 * um
         self.beta = (
             2
@@ -78,7 +78,9 @@ class Langevin:
             self.P, self.r_core, self.alpha, self.beta
         )
         # Thermal force
-        noise = np.random.randn((3,self.N))  # noise
+        noise = np.array(
+            [np.random.randn(self.N), np.random.randn(self.N), np.random.randn(self.N)]
+        )  # noise
         f_therm = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m) * noise
 
         x = np.zeros((3, self.N))
@@ -93,7 +95,7 @@ class Langevin:
                 + [0, 0, 1] * f_opt_z(x[0, i], x[1, i], x[2, i])
             )
             v[:, i + 1] = v[:, i] + self.delt * (
-                -self.gamma0 * v[:, i] + f_opt / self.m + f_therm[:,i]
+                -self.gamma0 * v[:, i] + f_opt / self.m + f_therm[:, i]
             )
             x[:, i + 1] = x[:, i] + v[:, i + 1] * self.delt
             check = f_opt / self.m
@@ -209,3 +211,4 @@ class Langevin:
         plt.ylabel("S [a.u.]")
         plt.legend()
         plt.show(block=True)
+        print(np.sqrt(2) * self.r_core * self.beta / jn_zeros(0, 1))
