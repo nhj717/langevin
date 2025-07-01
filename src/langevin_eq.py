@@ -62,9 +62,9 @@ class Langevin:
 
         t_f = 1e-2  # final time in sec
         # Number of sample points
-        self.N = 10000000
+        self.N = int(1e6)
         # sample spacing
-        self.delt = 1e-6  # resoltion of the time array
+        self.delt = 1e-7  # resoltion of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
         self.array_size = np.size(self.t)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
@@ -199,6 +199,10 @@ class Langevin:
             lorentzian_fit_coeff2[0],
             lorentzian_fit_coeff2[1],
             lorentzian_fit_coeff2[2],
+        )
+
+        print(
+            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz"
         )
 
         plt.plot(self.f * 1e-3, np.log10(x_fft), "orange", label="xfft")
