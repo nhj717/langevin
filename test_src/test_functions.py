@@ -13,6 +13,6 @@ def test_field_distribution():
 def test_langevin_eq():
     sim = Langevin()
     sim.langevin_eq()
-    # sim.plot_x()
-    # sim.plot_z()
+    sim.plot_x()
+    sim.plot_z()
     sim.plot_spectrums()

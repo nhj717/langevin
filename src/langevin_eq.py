@@ -62,7 +62,7 @@ class Langevin:
 
         t_f = 1e-2  # final time in sec
         # Number of sample points
-        self.N = int(1e7)
+        self.N = int(1e6)
         # sample spacing
         self.delt = 1e-7  # resoltion of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
