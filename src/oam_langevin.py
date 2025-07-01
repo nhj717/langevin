@@ -23,8 +23,8 @@ def lorentzian(x, x0, a, gamma):
     return a * gamma / ((x0**2 - x**2) ** 2 + (x * gamma) ** 2)
 
 
-class Langevin_averaged:
-    def __init__(self,iteration):
+class Langevin:
+    def __init__(self):
         # units
         mW = 1e-3
         um = 1e-6
@@ -45,7 +45,7 @@ class Langevin_averaged:
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
         self.P = 500 * mW  # power on each side
-        self.r_core = 22 * um
+        self.r_core = 20 * um
         self.beta = (
             2
             * np.pi
@@ -61,15 +61,14 @@ class Langevin_averaged:
         )
 
         t_f = 1e-2  # final time in sec
-        self.iteration = iteration  # number of iterations
-        self.N = int(5e5)  # Number of sample points
+        # Number of sample points
+        self.N = int(1e5)
+        # sample spacing
         self.delt = 1e-7  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
+        self.array_size = np.size(self.t)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
         self.omega = 2 * np.pi * self.f
-
-        self.x = np.zeros((self.iteration, 3, self.N))
-        self.v = np.zeros_like(self.x)
 
     def langevin_eq(self):
         x0 = np.zeros(3)  # initial position in m
@@ -80,15 +79,15 @@ class Langevin_averaged:
             self.P, self.r_core, self.alpha, self.beta
         )
         # Thermal force
-        noise = np.random.randn((3,self.N))
+        noise = np.random.randn(self.array_size)  # noise
         f_therm = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m) * noise
 
-        x = np.zeros((3, self.N))
+        x = np.zeros((3, self.array_size))
         v = np.zeros_like(x)
         x[:, 0] = [1e-10, 1e-10, 1e-11]
         v[:, 0] = v0
 
-        for i in range(self.N - 1):
+        for i in range(self.array_size - 1):
             theta = np.arctan2(x[1, i], x[0, i])
             f_opt = np.array(
                 [np.cos(theta), np.sin(theta), 0] * f_opt_r(x[0, i], x[1, i], x[2, i])
@@ -99,14 +98,8 @@ class Langevin_averaged:
             )
             x[:, i + 1] = x[:, i] + v[:, i + 1] * self.delt
             check = f_opt / self.m
-        return x, v
-
-    def run_iteration(self):
-        for i in range(self.iteration):
-            self.x[i], self.v[i] = Langevin_averaged.langevin_eq(self)
-            print(i)
-        self.x = np.average(self.x, axis=0)
-        self.v = np.average(self.v, axis=0)
+        self.x = x
+        self.v = v
 
     def plot_x(self):
         plt.plot(self.t, self.x[0, :])

@@ -66,7 +66,6 @@ class Langevin:
         # sample spacing
         self.delt = 1e-7  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
-        self.array_size = np.size(self.t)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
         self.omega = 2 * np.pi * self.f
 
@@ -79,22 +78,22 @@ class Langevin:
             self.P, self.r_core, self.alpha, self.beta
         )
         # Thermal force
-        noise = np.random.randn(self.array_size)  # noise
+        noise = np.random.randn((3,self.N))  # noise
         f_therm = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m) * noise
 
-        x = np.zeros((3, self.array_size))
+        x = np.zeros((3, self.N))
         v = np.zeros_like(x)
         x[:, 0] = [1e-10, 1e-10, 1e-11]
         v[:, 0] = v0
 
-        for i in range(self.array_size - 1):
+        for i in range(self.N - 1):
             theta = np.arctan2(x[1, i], x[0, i])
             f_opt = np.array(
                 [np.cos(theta), np.sin(theta), 0] * f_opt_r(x[0, i], x[1, i], x[2, i])
                 + [0, 0, 1] * f_opt_z(x[0, i], x[1, i], x[2, i])
             )
             v[:, i + 1] = v[:, i] + self.delt * (
-                -self.gamma0 * v[:, i] + f_opt / self.m + f_therm[i]
+                -self.gamma0 * v[:, i] + f_opt / self.m + f_therm[:,i]
             )
             x[:, i + 1] = x[:, i] + v[:, i + 1] * self.delt
             check = f_opt / self.m
