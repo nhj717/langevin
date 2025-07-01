@@ -62,7 +62,7 @@ class Langevin:
 
         t_f = 1e-2  # final time in sec
         # Number of sample points
-        self.N = 100000
+        self.N = 10000000
         # sample spacing
         self.delt = 1e-6  # resoltion of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
@@ -176,10 +176,11 @@ class Langevin:
         plt.show(block=True)
 
     def plot_spectrums(self):
-        x_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(np.size(self.t) / 2)]
+        x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
         x_fft = abs(x_fft) ** 2
+        peak_w_x = self.omega[np.argmax(x_fft)]
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[4.7e5, 4.5e-6, 200]
+            lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
         )
         x_fft_fit = lorentzian(
             self.omega,
@@ -187,15 +188,25 @@ class Langevin:
             lorentzian_fit_coeff[1],
             lorentzian_fit_coeff[2],
         )
-        print(
-            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
+        z_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
+        z_fft = abs(z_fft) ** 2
+        peak_w_z = self.omega[np.argmax(z_fft)]
+        lorentzian_fit_coeff2, lorentzian_fit_error2 = curve_fit(
+            lorentzian, self.omega, z_fft, p0=[peak_w_z, 5e-6, self.gamma0]
         )
-        print(
-            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz"
+        z_fft_fit = lorentzian(
+            self.omega,
+            lorentzian_fit_coeff2[0],
+            lorentzian_fit_coeff2[1],
+            lorentzian_fit_coeff2[2],
         )
-        plt.plot(self.f * 1e-3, np.log10(x_fft))
-        plt.plot(self.f * 1e-3, np.log10(x_fft_fit))
-        # plt.xlim(0.1, 10000)
+
+        plt.plot(self.f * 1e-3, np.log10(x_fft), "orange", label="xfft")
+        plt.plot(self.f * 1e-3, np.log10(x_fft_fit), "red", label="xfft fit")
+        plt.plot(self.f * 1e-3, np.log10(z_fft), "green", label="zfft")
+        plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "blue", label="zfft fit")
+        plt.xlim(0.1, 200)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
+        plt.legend()
         plt.show(block=True)
