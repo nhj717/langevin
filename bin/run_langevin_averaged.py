@@ -1,7 +1,7 @@
 from langevin_averaged import *
 
-sim = Langevin_averaged(1)
-sim.run_iteration()
+sim = Langevin_averaged(100)
+sim.langevin_eq()
 sim.plot_x()
 sim.plot_z()
 sim.plot_spectrums()

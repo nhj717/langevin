@@ -40,7 +40,7 @@ class Langevin_averaged:
         cross_section = (
             np.pi * (0.36 * nm) ** 2
         )  # mean cross-section of the air molecules
-        pressure = 10 * mbar
+        pressure = 1 * mbar
         eta = 2.791 * 1e-7 * self.T**0.7355  # viscosity coefficient of the air    m^2/s
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
@@ -68,9 +68,6 @@ class Langevin_averaged:
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
         self.omega = 2 * np.pi * self.f
 
-        self.x = np.zeros((self.iteration, 3, self.N))
-        self.v = np.zeros_like(self.x)
-
     def langevin_eq(self):
 
         # Optical force
@@ -88,23 +85,14 @@ class Langevin_averaged:
 
         for i in range(self.N - 1):
             theta = np.arctan2(x[:, 1, i], x[:, 0, i])
-            f_opt = np.array(
-                [np.cos(theta), np.sin(theta), 0]
-                * f_opt_r(x[:, 0, i], x[:, 1, i], x[:, 2, i])
-                + [0, 0, 1] * f_opt_z(x[:, 0, i], x[:, 1, i], x[:, 2, i])
-            )
+            f_opt = np.array([np.cos(theta), np.sin(theta), np.zeros_like(theta)]*f_opt_r(x[:, 0, i], x[:, 1, i], x[:, 2, i])).T + np.array([0, 0, 1]) * f_opt_z(x[:, 0, i], x[:, 1, i], x[:, 2, i])[:,None]
+
             v[:, :, i + 1] = v[:, :, i] + self.delt * (
                 -self.gamma0 * v[:, :, i] + f_opt / self.m + f_therm[:, :, i]
             )
             x[:, :, i + 1] = x[:, :, i] + v[:, :, i + 1] * self.delt
-            check = f_opt / self.m
-
-    def run_iteration(self):
-        for i in range(self.iteration):
-            self.x[i], self.v[i] = Langevin_averaged.langevin_eq(self)
-            print(i)
-        self.x = np.average(self.x, axis=0)
-        self.v = np.average(self.v, axis=0)
+        self.x = np.average(x,axis = 0)
+        self.v = np.average(v,axis=0)
 
     def plot_x(self):
         plt.plot(self.t, self.x[0, :])
