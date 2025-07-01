@@ -72,8 +72,6 @@ class Langevin_averaged:
         self.v = np.zeros_like(self.x)
 
     def langevin_eq(self):
-        x0 = np.zeros(3)  # initial position in m
-        v0 = np.zeros(3)  # initial velocity in m/s
 
         # Optical force
         f_opt_r, f_opt_phi, f_opt_z = beam_profile.gaussian_standing_wave(
@@ -83,23 +81,23 @@ class Langevin_averaged:
         noise = np.random.randn(self.iteration, 3, self.N)  # noise
         f_therm = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m) * noise
 
-        x = np.zeros((3, self.N))
+        x = np.zeros((self.iteration, 3, self.N))
         v = np.zeros_like(x)
-        x[:, 0] = [1e-10, 1e-10, 1e-11]
-        v[:, 0] = v0
+        x[:, :, 0] = [1e-10, 1e-10, 1e-11]
+        v[:, :, 0] = 0
 
         for i in range(self.N - 1):
-            theta = np.arctan2(x[1, i], x[0, i])
+            theta = np.arctan2(x[:, 1, i], x[:, 0, i])
             f_opt = np.array(
-                [np.cos(theta), np.sin(theta), 0] * f_opt_r(x[0, i], x[1, i], x[2, i])
-                + [0, 0, 1] * f_opt_z(x[0, i], x[1, i], x[2, i])
+                [np.cos(theta), np.sin(theta), 0]
+                * f_opt_r(x[:, 0, i], x[:, 1, i], x[:, 2, i])
+                + [0, 0, 1] * f_opt_z(x[:, 0, i], x[:, 1, i], x[:, 2, i])
             )
-            v[:, i + 1] = v[:, i] + self.delt * (
-                -self.gamma0 * v[:, i] + f_opt / self.m + f_therm[i]
+            v[:, :, i + 1] = v[:, :, i] + self.delt * (
+                -self.gamma0 * v[:, :, i] + f_opt / self.m + f_therm[:, :, i]
             )
-            x[:, i + 1] = x[:, i] + v[:, i + 1] * self.delt
+            x[:, :, i + 1] = x[:, :, i] + v[:, :, i + 1] * self.delt
             check = f_opt / self.m
-        return x, v
 
     def run_iteration(self):
         for i in range(self.iteration):
