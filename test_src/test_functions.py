@@ -20,7 +20,7 @@ def test_langevin_eq():
 
 
 def test_langevin_averaged():
-    sim = Langevin_averaged()
+    sim = Langevin_averaged(2)
     sim.run_iteration()
     # sim.plot_x()
     # sim.plot_z()

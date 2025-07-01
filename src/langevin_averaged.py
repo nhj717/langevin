@@ -80,9 +80,7 @@ class Langevin_averaged:
             self.P, self.r_core, self.alpha, self.beta
         )
         # Thermal force
-        noise = np.array(
-            [np.random.randn(self.N), np.random.randn(self.N), np.random.randn(self.N)]
-        )  # noise
+        noise = np.random.randn(self.iteration, 3, self.N)  # noise
         f_therm = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m) * noise
 
         x = np.zeros((3, self.N))
