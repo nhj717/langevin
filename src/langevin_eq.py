@@ -64,7 +64,7 @@ class Langevin:
         # Number of sample points
         N = 1000000
         # sample spacing
-        self.delt = 1e-9  # resoltion of the time array
+        self.delt = 1e-6  # resoltion of the time array
         self.t = np.linspace(0, N * self.delt, N)
         self.array_size = np.size(self.t)
         self.f = fft.fftfreq(N, self.delt)[: int(N / 2)]
@@ -90,7 +90,7 @@ class Langevin:
 
         x = np.zeros((3, self.array_size))
         v = np.zeros_like(x)
-        x[:, 0] = [1e-9, 1e-9, -1e-11]
+        x[:, 0] = [1e-9, 1e-9, -1e-10]
         v[:, 0] = v0
 
         for i in range(self.array_size - 1):
@@ -120,7 +120,7 @@ class Langevin:
         x_fft = fft.fft(self.x[0, :])[: int(np.size(self.t) / 2)]
         x_fft = abs(x_fft) ** 2
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[1e5, 1, 20]
+            lorentzian, self.omega, x_fft, p0=[2 * np.pi * 1.5e3, 7500, 200]
         )
         x_fft_fit = lorentzian(
             self.omega,
@@ -129,13 +129,13 @@ class Langevin:
             lorentzian_fit_coeff[2],
         )
         print(
-            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]} rad. Hz"
+            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
         )
         print(
             f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz"
         )
-        plt.plot(self.f * 1e3, np.log10(x_fft))
-        plt.plot(self.f * 1e3, np.log10(x_fft_fit))
+        plt.plot(self.f * 1e-3, np.log10(x_fft))
+        plt.plot(self.f * 1e-3, np.log10(x_fft_fit))
         # plt.xlim(0.1, 10000)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
@@ -154,7 +154,7 @@ class Langevin:
         x_fft = fft.fft(self.x[2, :])[: int(np.size(self.t) / 2)]
         x_fft = abs(x_fft) ** 2
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[7.4e4, 1e7, 200]
+            lorentzian, self.omega, x_fft, p0=[4.7e5, 7669, 200]
         )
         x_fft_fit = lorentzian(
             self.omega,
@@ -163,7 +163,7 @@ class Langevin:
             lorentzian_fit_coeff[2],
         )
         print(
-            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]} rad. Hz"
+            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
         )
         print(
             f"Actual gamma0 is {self.gamma0 / (2 * np.pi) }Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi) }Hz"
