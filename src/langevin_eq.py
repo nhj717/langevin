@@ -62,12 +62,12 @@ class Langevin:
 
         t_f = 1e-2  # final time in sec
         # Number of sample points
-        N = 1000000
+        self.N = 100000
         # sample spacing
         self.delt = 1e-6  # resoltion of the time array
-        self.t = np.linspace(0, N * self.delt, N)
+        self.t = np.linspace(0, self.N * self.delt, self.N)
         self.array_size = np.size(self.t)
-        self.f = fft.fftfreq(N, self.delt)[: int(N / 2)]
+        self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
         self.omega = 2 * np.pi * self.f
 
     def langevin_eq(self):
@@ -117,10 +117,10 @@ class Langevin:
         plt.ylabel("P [kg*m/s]")
         plt.show(block=True)
 
-        x_fft = fft.fft(self.x[0, :])[: int(np.size(self.t) / 2)]
+        x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(np.size(self.t) / 2)]
         x_fft = abs(x_fft) ** 2
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[2 * np.pi * 1.5e3, 7500, 200]
+            lorentzian, self.omega, x_fft, p0=[2 * np.pi * 1e3, 5e-6, 200]
         )
         x_fft_fit = lorentzian(
             self.omega,
@@ -151,10 +151,10 @@ class Langevin:
         plt.ylabel("P [kg*m/s]")
         plt.show(block=True)
 
-        x_fft = fft.fft(self.x[2, :])[: int(np.size(self.t) / 2)]
+        x_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(np.size(self.t) / 2)]
         x_fft = abs(x_fft) ** 2
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[4.7e5, 7669, 200]
+            lorentzian, self.omega, x_fft, p0=[4.7e5, 4.5e-6, 200]
         )
         x_fft_fit = lorentzian(
             self.omega,
@@ -176,20 +176,10 @@ class Langevin:
         plt.show(block=True)
 
     def plot_spectrums(self):
-        plt.plot(self.t, self.x[0, :])
-        plt.xlabel("Time [s]")
-        plt.ylabel("X [m]")
-        plt.show(block=True)
-        plt.plot(self.x[0, :], self.m * self.v[0, :])
-        plt.xlabel("X [m]")
-        plt.ylabel("P [kg*m/s]")
-        plt.show(block=True)
-
-        x_fft = fft.fft(self.x[0, :])[: int(np.size(self.t) / 2)]
-        # x_fft = fft.fftshift(x_fft)
+        x_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(np.size(self.t) / 2)]
         x_fft = abs(x_fft) ** 2
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[6000, 1, 20]
+            lorentzian, self.omega, x_fft, p0=[4.7e5, 4.5e-6, 200]
         )
         x_fft_fit = lorentzian(
             self.omega,
@@ -197,13 +187,15 @@ class Langevin:
             lorentzian_fit_coeff[1],
             lorentzian_fit_coeff[2],
         )
-
-        plt.plot(self.omega, np.log10(x_fft))
-        plt.plot(self.omega, np.log10(x_fft_fit))
+        print(
+            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
+        )
+        print(
+            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz"
+        )
+        plt.plot(self.f * 1e-3, np.log10(x_fft))
+        plt.plot(self.f * 1e-3, np.log10(x_fft_fit))
         # plt.xlim(0.1, 10000)
-        plt.xlabel("omega [rad Hz]")
+        plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.show(block=True)
-        print(
-            f"Actual gamma0 is {self.gamma0} and the calculated gamma0 is {lorentzian_fit_coeff[2]}Hz"
-        )
