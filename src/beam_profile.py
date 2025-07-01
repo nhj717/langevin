@@ -21,21 +21,23 @@ def initial_setup(mode_number, polarization):
 def gaussian_standing_wave(P, r_core, alpha, beta):
     u01 = sp.jn_zeros(0, 1)
     factor = (
-        -4
+        2
         * P
         * np.real(alpha)
-        * u01
-        / (np.pi * r_core**3 * const.c * const.epsilon_0 * sp.jve(1, u01) ** 2)
+        / (np.pi * r_core**2 * const.c * const.epsilon_0 * sp.jve(1, u01) ** 2)
     )
     f_r = (
-        lambda x, y, z: factor
+        lambda x, y, z: -2
+        * factor
         * sp.jve(0, u01 * np.sqrt(x**2 + y**2) / r_core)
         * sp.jve(1, u01 * np.sqrt(x**2 + y**2) / r_core)
+        * u01
+        / r_core
         * np.cos(beta * z) ** 2
     )
     f_phi = lambda x, y: 0
     f_z = (
-        lambda x, y, z: factor
+        lambda x, y, z: -factor
         * sp.jve(0, u01 * np.sqrt(x**2 + y**2) / r_core) ** 2
         * np.sin(2 * beta * z)
         * beta

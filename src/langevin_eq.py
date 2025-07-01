@@ -62,7 +62,7 @@ class Langevin:
 
         t_f = 1e-2  # final time in sec
         # Number of sample points
-        N = 100000
+        N = 1000000
         # sample spacing
         self.delt = 1e-9  # resoltion of the time array
         self.t = np.linspace(0, N * self.delt, N)
@@ -154,7 +154,7 @@ class Langevin:
         x_fft = fft.fft(self.x[2, :])[: int(np.size(self.t) / 2)]
         x_fft = abs(x_fft) ** 2
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[7.4e5, 1e4, 200]
+            lorentzian, self.omega, x_fft, p0=[7.4e4, 1e7, 200]
         )
         x_fft_fit = lorentzian(
             self.omega,
