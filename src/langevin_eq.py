@@ -62,7 +62,7 @@ class Langevin:
 
         t_f = 1e-2  # final time in sec
         # Number of sample points
-        self.N = int(1e6)
+        self.N = int(1e7)
         # sample spacing
         self.delt = 1e-7  # resoltion of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
@@ -78,14 +78,8 @@ class Langevin:
         f_opt_r, f_opt_phi, f_opt_z = beam_profile.gaussian_standing_wave(
             self.P, self.r_core, self.alpha, self.beta
         )
-
-        print(self.beta)
-
         # Thermal force
         noise = np.random.randn(self.array_size)  # noise
-        print(np.mean(noise))
-        plt.hist(noise, bins=100)
-        plt.show(block=True)
         f_therm = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m) * noise
 
         x = np.zeros((3, self.array_size))
@@ -107,7 +101,7 @@ class Langevin:
         self.x = x
         self.v = v
 
-    def plot(self):
+    def plot_x(self):
         plt.plot(self.t, self.x[0, :])
         plt.xlabel("Time [s]")
         plt.ylabel("X [m]")
@@ -117,10 +111,11 @@ class Langevin:
         plt.ylabel("P [kg*m/s]")
         plt.show(block=True)
 
-        x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(np.size(self.t) / 2)]
+        x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
         x_fft = abs(x_fft) ** 2
+        peak_w_x = self.omega[np.argmax(x_fft)]
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[2 * np.pi * 1e3, 5e-6, 200]
+            lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
         )
         x_fft_fit = lorentzian(
             self.omega,
@@ -151,10 +146,11 @@ class Langevin:
         plt.ylabel("P [kg*m/s]")
         plt.show(block=True)
 
-        x_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(np.size(self.t) / 2)]
+        x_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
         x_fft = abs(x_fft) ** 2
-        lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[4.7e5, 4.5e-6, 200]
+        peak_w_z = self.omega[np.argmax(x_fft)]
+        lorentzian_fit_coeff, lorentzian_fit_error2 = curve_fit(
+            lorentzian, self.omega, x_fft, p0=[peak_w_z, 5e-6, self.gamma0]
         )
         x_fft_fit = lorentzian(
             self.omega,
@@ -202,7 +198,7 @@ class Langevin:
         )
 
         print(
-            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz"
+            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz for x and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz for z"
         )
 
         plt.plot(self.f * 1e-3, np.log10(x_fft), "orange", label="xfft")
