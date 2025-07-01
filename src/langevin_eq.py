@@ -34,7 +34,7 @@ class Langevin:
         self.wl = 1.064 * um
         self.k = 2 * np.pi / self.wl
         self.T = 300  # kelvins
-        radius = 500 / 2 * nm
+        radius = 200 / 2 * nm
         density = 2.2e3  # kgm-3
         cross_section = (
             np.pi * (0.36 * nm) ** 2
@@ -43,7 +43,7 @@ class Langevin:
         eta = 2.791 * 1e-7 * self.T**0.7355  # viscosity coefficient of the air    m^2/s
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
-        self.P = 100 * mW
+        self.P = 500 * mW  # power on each side
         self.r_core = 20 * um
         eps_glass = 3.9
         alpha0 = (
@@ -53,11 +53,15 @@ class Langevin:
             1 - 1j * alpha0 * self.k**3 / (6 * np.pi * const.epsilon_0)
         )
 
-        self.t_f = 1e-2  # final time in sec
+        t_f = 1e-2  # final time in sec
+        # Number of sample points
+        N = 100000
+        # sample spacing
         self.delt = 1e-5  # resoltion of the time array
-        self.t = np.arange(0, self.t_f, self.delt)
+        self.t = np.linspace(0, N * self.delt, N)
         self.array_size = np.size(self.t)
-        self.f = np.linspace(0, 1 / self.delt, self.array_size)
+        self.f = fft.fftfreq(N, self.delt)[: int(N / 2)]
+        self.omega = 2 * np.pi * self.f
 
     def langevin_eq(self):
         x0 = np.zeros(2)  # initial position in m
@@ -84,7 +88,7 @@ class Langevin:
             theta = np.arctan2(x[1, i], x[0, i])
             f_opt = np.array([np.cos(theta), np.sin(theta)]) * f_opt_r(x[0, i], x[1, i])
             v[:, i + 1] = v[:, i] + self.delt * (
-                -self.gamma0 * v[:, i] + f_opt / self.m + f_therm[i] * 0
+                -self.gamma0 * v[:, i] + f_opt / self.m + f_therm[i]
             )
             x[:, i + 1] = x[:, i] + v[:, i + 1] * self.delt
             check = f_opt / self.m
@@ -101,22 +105,23 @@ class Langevin:
         plt.ylabel("P [kg*m/s]")
         plt.show(block=True)
 
-        x_fft = fft.fft(self.x[0, :])
-        x_fft = fft.fftshift(x_fft)
-        x_fft = abs(x_fft)
+        x_fft = fft.fft(self.x[0, :])[: int(np.size(self.t) / 2)]
+        # x_fft = fft.fftshift(x_fft)
+        x_fft = abs(x_fft) ** 2
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.f, x_fft, p0=[5e5, 1e5, 1000], maxfev=100000
+            lorentzian, self.omega, x_fft, p0=[6000, 1, 20]
         )
         x_fft_fit = lorentzian(
-            self.f,
+            self.omega,
             lorentzian_fit_coeff[0],
             lorentzian_fit_coeff[1],
             lorentzian_fit_coeff[2],
         )
 
-        plt.plot(self.f, np.log10(x_fft))
-        plt.plot(self.f, np.log10(x_fft_fit))
-        plt.xlabel("f [Hz]")
+        plt.plot(self.omega, np.log10(x_fft))
+        plt.plot(self.omega, np.log10(x_fft_fit))
+        # plt.xlim(0.1, 10000)
+        plt.xlabel("omega [rad Hz]")
         plt.ylabel("S [a.u.]")
         plt.show(block=True)
         print(
