@@ -61,10 +61,11 @@ class Langevin_averaged:
         )
 
         self.iteration = iteration  # number of iterations
-        self.N = int(1e6)  # Number of sample points
+        self.N = int(1e5)  # Number of sample points
         self.delt = 1e-7  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
+        self.f_start = int(np.abs(self.f - 1000).argmin())
         self.omega = 2 * np.pi * self.f
         self.x = np.zeros((3, self.N))
         self.v = np.zeros_like(self.x)
@@ -85,6 +86,7 @@ class Langevin_averaged:
         # x[:, :, 0] = [1e-10, 1e-10, 1e-11]
         # v[:, :, 0] = 0
         x[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-11
+        x[:,1,0] -=
         v[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-5
         self.x[:, 0] = np.average(x[:, :, 0], axis=0)
         self.v[:, 0] = np.average(v[:, :, 0], axis=0)
@@ -126,7 +128,7 @@ class Langevin_averaged:
 
         x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
         x_fft = abs(x_fft) ** 2
-        peak_w_x = self.omega[np.argmax(x_fft)]
+        peak_w_x = self.omega[int(self.f_start + np.argmax(x_fft[self.f_start :]))]
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
             lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
         )
@@ -161,9 +163,14 @@ class Langevin_averaged:
 
         x_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
         x_fft = abs(x_fft) ** 2
-        peak_w_x = self.omega[np.argmax(x_fft)]
+        peak_w_x = self.omega[int(self.f_start + np.argmax(x_fft[self.f_start :]))]
+        peak_w_x = 30000
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
+            lorentzian,
+            self.omega,
+            x_fft,
+            p0=[peak_w_x, 1e-4, self.gamma0],
+            maxfev=10000,
         )
         x_fft_fit = lorentzian(
             self.omega,
@@ -196,7 +203,7 @@ class Langevin_averaged:
 
         x_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
         x_fft = abs(x_fft) ** 2
-        peak_w_z = self.omega[np.argmax(x_fft)]
+        peak_w_z = self.omega[int(self.f_start + np.argmax(x_fft[self.f_start :]))]
         lorentzian_fit_coeff, lorentzian_fit_error2 = curve_fit(
             lorentzian, self.omega, x_fft, p0=[peak_w_z, 5e-6, self.gamma0]
         )
@@ -222,7 +229,7 @@ class Langevin_averaged:
     def plot_spectrums(self):
         x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
         x_fft = abs(x_fft) ** 2
-        peak_w_x = self.omega[np.argmax(x_fft)]
+        peak_w_x = self.omega[int(self.f_start + np.argmax(x_fft[self.f_start :]))]
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
             lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
         )
@@ -234,7 +241,7 @@ class Langevin_averaged:
         )
         y_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
         y_fft = abs(y_fft) ** 2
-        peak_w_y = self.omega[np.argmax(y_fft)]
+        peak_w_y = self.omega[int(self.f_start + np.argmax(y_fft[self.f_start :]))]
         lorentzian_fit_coeff1, lorentzian_fit_error1 = curve_fit(
             lorentzian, self.omega, y_fft, p0=[peak_w_y, 5e-6, self.gamma0]
         )
@@ -246,7 +253,7 @@ class Langevin_averaged:
         )
         z_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
         z_fft = abs(z_fft) ** 2
-        peak_w_z = self.omega[np.argmax(z_fft)]
+        peak_w_z = self.omega[int(self.f_start + np.argmax(z_fft[self.f_start :]))]
         lorentzian_fit_coeff2, lorentzian_fit_error2 = curve_fit(
             lorentzian, self.omega, z_fft, p0=[peak_w_z, 5e-6, self.gamma0]
         )
