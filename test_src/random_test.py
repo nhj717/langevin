@@ -1,8 +1,7 @@
 import numpy as np
 
-x = np.array([0,0,1])
-y = np.array([2,3])
-z = x[:,None]*y
-c = x[:,None]
-print(np.shape(c))
-print(c)
+x = np.array([0, 1])
+x[0] = x[1]
+x[1] = 2
+print(np.shape(x))
+print(x)
