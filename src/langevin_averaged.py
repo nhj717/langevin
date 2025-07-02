@@ -40,7 +40,7 @@ class Langevin_averaged:
         cross_section = (
             np.pi * (0.36 * nm) ** 2
         )  # mean cross-section of the air molecules
-        pressure = 10 * mbar
+        pressure = 1 * mbar
         eta = 2.791 * 1e-7 * self.T**0.7355  # viscosity coefficient of the air    m^2/s
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
@@ -61,13 +61,13 @@ class Langevin_averaged:
         )
 
         self.iteration = iteration  # number of iterations
-        self.N = int(1e6)  # Number of sample points
+        self.N = int(5e6)  # Number of sample points
         self.delt = 1e-7  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
         self.omega = 2 * np.pi * self.f
-        self.x = np.zeros(self.N)
-        self.v = np.zeros_like(self.N)
+        self.x = np.zeros((3, self.N))
+        self.v = np.zeros_like(self.x)
 
     def langevin_eq(self):
 
@@ -81,8 +81,12 @@ class Langevin_averaged:
 
         x = np.zeros((self.iteration, 3, 2))
         v = np.zeros_like(x)
-        x[:, :, 0] = [1e-10, 1e-10, 1e-11]
-        v[:, :, 0] = 0
+        # x[:, :, 0] = [1e-10, 1e-10, 1e-11]
+        # v[:, :, 0] = 0
+        x[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-10
+        v[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-5
+        self.x[:, 0] = np.average(x[:, :, 0], axis=0)
+        self.v[:, 0] = np.average(v[:, :, 0], axis=0)
 
         for i in range(self.N - 1):
             theta = np.arctan2(x[:, 1, 0], x[:, 0, 0])
@@ -96,12 +100,12 @@ class Langevin_averaged:
             )
 
             v[:, :, 1] = v[:, :, 0] + self.delt * (
-                -self.gamma0 * v[:, :, 0] + f_opt / self.m + f_therm[:, :, 0]
+                -self.gamma0 * v[:, :, 0] + f_opt / self.m + f_therm[:, :, i]
             )
             x[:, :, 1] = x[:, :, 0] + v[:, :, 1] * self.delt
 
-            self.x[i] = np.average(x[:, 0])
-            self.v[i] = np.average(v[:, 0])
+            self.x[:, i + 1] = np.average(x[:, :, 1], axis=0)
+            self.v[:, i + 1] = np.average(v[:, :, 1], axis=0)
 
             x[:, :, 0] = x[:, :, 1]
             v[:, :, 0] = v[:, :, 1]

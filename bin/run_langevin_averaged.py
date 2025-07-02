@@ -1,6 +1,6 @@
 from langevin_averaged import *
 
-sim = Langevin_averaged(1000)
+sim = Langevin_averaged(100)
 sim.langevin_eq()
 sim.plot_x()
 sim.plot_z()
