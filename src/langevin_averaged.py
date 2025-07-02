@@ -262,7 +262,7 @@ class Langevin_averaged:
         )
 
         print(
-            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz for x and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz for z"
+            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz for x, {lorentzian_fit_coeff1[2] / (2 * np.pi)}Hz for y and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz for z"
         )
 
         plt.plot(self.f * 1e-3, np.log10(x_fft), "orange", label="xfft")
