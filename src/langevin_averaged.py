@@ -44,8 +44,8 @@ class Langevin_averaged:
         eta = 2.791 * 1e-7 * self.T**0.7355  # viscosity coefficient of the air    m^2/s
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
-        self.P = 500 * mW  # power on each side
-        self.r_core = 22 * um
+        self.P = 2000 * mW  # power on each side
+        self.r_core = 15 * um
         self.beta = (
             2
             * np.pi
@@ -61,7 +61,7 @@ class Langevin_averaged:
         )
 
         self.iteration = iteration  # number of iterations
-        self.N = int(3e6)  # Number of sample points
+        self.N = int(1e6)  # Number of sample points
         self.delt = 1e-7  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
@@ -76,14 +76,14 @@ class Langevin_averaged:
             self.P, self.r_core, self.alpha, self.beta
         )
         # Thermal force
-        noise = np.random.randn(self.iteration, 3, self.N)  # noise
-        f_therm = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m) * noise
+        factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0)
+        f_therm = factor * np.random.randn(self.iteration, 3, self.N)
 
         x = np.zeros((self.iteration, 3, 2))
         v = np.zeros_like(x)
         # x[:, :, 0] = [1e-10, 1e-10, 1e-11]
         # v[:, :, 0] = 0
-        x[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-10
+        x[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-11
         v[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-5
         self.x[:, 0] = np.average(x[:, :, 0], axis=0)
         self.v[:, 0] = np.average(v[:, :, 0], axis=0)
@@ -100,7 +100,7 @@ class Langevin_averaged:
             )
 
             v[:, :, 1] = v[:, :, 0] + self.delt * (
-                -self.gamma0 * v[:, :, 0] + f_opt / self.m + f_therm[:, :, i]
+                -self.gamma0 * v[:, :, 0] + f_opt / self.m + f_therm[:, :, i] / self.m
             )
             x[:, :, 1] = x[:, :, 0] + v[:, :, 1] * self.delt
 
@@ -214,7 +214,7 @@ class Langevin_averaged:
         plt.plot(self.f * 1e-3, np.log10(x_fft_fit), "red", label="xfft fit")
         plt.plot(self.f * 1e-3, np.log10(z_fft), "green", label="zfft")
         plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "blue", label="zfft fit")
-        plt.xlim(0.1, 200)
+        plt.xlim(0.1, 300)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.legend()
