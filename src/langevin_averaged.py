@@ -61,7 +61,7 @@ class Langevin_averaged:
         )
 
         self.iteration = iteration  # number of iterations
-        self.N = int(5e6)  # Number of sample points
+        self.N = int(3e6)  # Number of sample points
         self.delt = 1e-7  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
