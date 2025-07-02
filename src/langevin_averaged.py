@@ -78,7 +78,7 @@ class Langevin_averaged:
         # Thermal force
         factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0)
         f_therm = factor * np.random.randn(self.iteration, 3, self.N)
-        gravity = np.array([0, 1, 0]) * 9.8
+        gravity = np.array([0, 1, 0]) * np.ones(self.iteration)[:, None] * (-9.8)
 
         x = np.zeros((self.iteration, 3, 2))
         v = np.zeros_like(x)
@@ -234,7 +234,7 @@ class Langevin_averaged:
         )
         y_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
         y_fft = abs(y_fft) ** 2
-        peak_w_y = self.omega[np.argmax(x_fft)]
+        peak_w_y = self.omega[np.argmax(y_fft)]
         lorentzian_fit_coeff1, lorentzian_fit_error1 = curve_fit(
             lorentzian, self.omega, y_fft, p0=[peak_w_y, 5e-6, self.gamma0]
         )
