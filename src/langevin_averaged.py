@@ -78,6 +78,7 @@ class Langevin_averaged:
         # Thermal force
         factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0)
         f_therm = factor * np.random.randn(self.iteration, 3, self.N)
+        gravity = np.array([0, 1, 0]) * 9.8
 
         x = np.zeros((self.iteration, 3, 2))
         v = np.zeros_like(x)
@@ -100,7 +101,10 @@ class Langevin_averaged:
             )
 
             v[:, :, 1] = v[:, :, 0] + self.delt * (
-                -self.gamma0 * v[:, :, 0] + f_opt / self.m + f_therm[:, :, i] / self.m
+                -self.gamma0 * v[:, :, 0]
+                + f_opt / self.m
+                + f_therm[:, :, i] / self.m
+                + gravity
             )
             x[:, :, 1] = x[:, :, 0] + v[:, :, 1] * self.delt
 
@@ -121,6 +125,41 @@ class Langevin_averaged:
         plt.show(block=True)
 
         x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
+        x_fft = abs(x_fft) ** 2
+        peak_w_x = self.omega[np.argmax(x_fft)]
+        lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
+            lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
+        )
+        x_fft_fit = lorentzian(
+            self.omega,
+            lorentzian_fit_coeff[0],
+            lorentzian_fit_coeff[1],
+            lorentzian_fit_coeff[2],
+        )
+        print(
+            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
+        )
+        print(
+            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz"
+        )
+        plt.plot(self.f * 1e-3, np.log10(x_fft))
+        plt.plot(self.f * 1e-3, np.log10(x_fft_fit))
+        # plt.xlim(0.1, 10000)
+        plt.xlabel("f [kHz]")
+        plt.ylabel("S [a.u.]")
+        plt.show(block=True)
+
+    def plot_y(self):
+        plt.plot(self.t, self.x[1, :])
+        plt.xlabel("Time [s]")
+        plt.ylabel("Y [m]")
+        plt.show(block=True)
+        plt.plot(self.x[1, :], self.m * self.v[1, :])
+        plt.xlabel("Y [m]")
+        plt.ylabel("P [kg*m/s]")
+        plt.show(block=True)
+
+        x_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
         x_fft = abs(x_fft) ** 2
         peak_w_x = self.omega[np.argmax(x_fft)]
         lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
@@ -193,6 +232,18 @@ class Langevin_averaged:
             lorentzian_fit_coeff[1],
             lorentzian_fit_coeff[2],
         )
+        y_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
+        y_fft = abs(y_fft) ** 2
+        peak_w_y = self.omega[np.argmax(x_fft)]
+        lorentzian_fit_coeff1, lorentzian_fit_error1 = curve_fit(
+            lorentzian, self.omega, y_fft, p0=[peak_w_y, 5e-6, self.gamma0]
+        )
+        y_fft_fit = lorentzian(
+            self.omega,
+            lorentzian_fit_coeff1[0],
+            lorentzian_fit_coeff1[1],
+            lorentzian_fit_coeff1[2],
+        )
         z_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
         z_fft = abs(z_fft) ** 2
         peak_w_z = self.omega[np.argmax(z_fft)]
@@ -212,8 +263,10 @@ class Langevin_averaged:
 
         plt.plot(self.f * 1e-3, np.log10(x_fft), "orange", label="xfft")
         plt.plot(self.f * 1e-3, np.log10(x_fft_fit), "red", label="xfft fit")
-        plt.plot(self.f * 1e-3, np.log10(z_fft), "green", label="zfft")
-        plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "blue", label="zfft fit")
+        plt.plot(self.f * 1e-3, np.log10(y_fft), "cyan", label="yfft")
+        plt.plot(self.f * 1e-3, np.log10(y_fft_fit), "blue", label="yfft fit")
+        plt.plot(self.f * 1e-3, np.log10(z_fft), "brown", label="zfft")
+        plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "black", label="zfft fit")
         plt.xlim(0.1, 300)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")

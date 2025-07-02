@@ -23,8 +23,8 @@ def lorentzian(x, x0, a, gamma):
     return a * gamma / ((x0**2 - x**2) ** 2 + (x * gamma) ** 2)
 
 
-class Langevin:
-    def __init__(self):
+class oam_Langevin:
+    def __init__(self, iteration):
         # units
         mW = 1e-3
         um = 1e-6
@@ -40,12 +40,12 @@ class Langevin:
         cross_section = (
             np.pi * (0.36 * nm) ** 2
         )  # mean cross-section of the air molecules
-        pressure = 10 * mbar
+        pressure = 1 * mbar
         eta = 2.791 * 1e-7 * self.T**0.7355  # viscosity coefficient of the air    m^2/s
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
-        self.P = 500 * mW  # power on each side
-        self.r_core = 20 * um
+        self.P = 2000 * mW  # power on each side
+        self.r_core = 15 * um
         self.beta = (
             2
             * np.pi
@@ -60,46 +60,55 @@ class Langevin:
             1 - 1j * alpha0 * self.k**3 / (6 * np.pi * const.epsilon_0)
         )
 
-        t_f = 1e-2  # final time in sec
-        # Number of sample points
-        self.N = int(1e5)
-        # sample spacing
+        self.iteration = iteration  # number of iterations
+        self.N = int(1e6)  # Number of sample points
         self.delt = 1e-7  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
-        self.array_size = np.size(self.t)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
         self.omega = 2 * np.pi * self.f
+        self.x = np.zeros((3, self.N))
+        self.v = np.zeros_like(self.x)
 
     def langevin_eq(self):
-        x0 = np.zeros(3)  # initial position in m
-        v0 = np.zeros(3)  # initial velocity in m/s
 
         # Optical force
-        f_opt_r, f_opt_phi, f_opt_z = beam_profile.gaussian_standing_wave(
+        f_opt_r, f_opt_phi, f_opt_z = beam_profile.oam_standing_wave(
             self.P, self.r_core, self.alpha, self.beta
         )
         # Thermal force
-        noise = np.random.randn(self.array_size)  # noise
-        f_therm = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m) * noise
+        factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0)
+        f_therm = factor * np.random.randn(self.iteration, 3, self.N)
 
-        x = np.zeros((3, self.array_size))
+        x = np.zeros((self.iteration, 3, 2))
         v = np.zeros_like(x)
-        x[:, 0] = [1e-10, 1e-10, 1e-11]
-        v[:, 0] = v0
+        # x[:, :, 0] = [1e-10, 1e-10, 1e-11]
+        # v[:, :, 0] = 0
+        x[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-11
+        v[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-5
+        self.x[:, 0] = np.average(x[:, :, 0], axis=0)
+        self.v[:, 0] = np.average(v[:, :, 0], axis=0)
 
-        for i in range(self.array_size - 1):
-            theta = np.arctan2(x[1, i], x[0, i])
-            f_opt = np.array(
-                [np.cos(theta), np.sin(theta), 0] * f_opt_r(x[0, i], x[1, i], x[2, i])
-                + [0, 0, 1] * f_opt_z(x[0, i], x[1, i], x[2, i])
+        for i in range(self.N - 1):
+            theta = np.arctan2(x[:, 1, 0], x[:, 0, 0])
+            f_opt = (
+                np.array(
+                    [np.cos(theta), np.sin(theta), np.zeros_like(theta)]
+                    * f_opt_r(x[:, 0, 0], x[:, 1, 0], x[:, 2, 0])
+                ).T
+                + np.array([0, 0, 1])
+                * f_opt_z(x[:, 0, 0], x[:, 1, 0], x[:, 2, 0])[:, None]
             )
-            v[:, i + 1] = v[:, i] + self.delt * (
-                -self.gamma0 * v[:, i] + f_opt / self.m + f_therm[i]
+
+            v[:, :, 1] = v[:, :, 0] + self.delt * (
+                -self.gamma0 * v[:, :, 0] + f_opt / self.m + f_therm[:, :, i] / self.m
             )
-            x[:, i + 1] = x[:, i] + v[:, i + 1] * self.delt
-            check = f_opt / self.m
-        self.x = x
-        self.v = v
+            x[:, :, 1] = x[:, :, 0] + v[:, :, 1] * self.delt
+
+            self.x[:, i + 1] = np.average(x[:, :, 1], axis=0)
+            self.v[:, i + 1] = np.average(v[:, :, 1], axis=0)
+
+            x[:, :, 0] = x[:, :, 1]
+            v[:, :, 0] = v[:, :, 1]
 
     def plot_x(self):
         plt.plot(self.t, self.x[0, :])
@@ -205,7 +214,7 @@ class Langevin:
         plt.plot(self.f * 1e-3, np.log10(x_fft_fit), "red", label="xfft fit")
         plt.plot(self.f * 1e-3, np.log10(z_fft), "green", label="zfft")
         plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "blue", label="zfft fit")
-        plt.xlim(0.1, 200)
+        plt.xlim(0.1, 300)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.legend()
