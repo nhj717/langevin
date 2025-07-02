@@ -21,12 +21,12 @@ def test_langevin_eq():
 
 
 def test_langevin_averaged():
-    sim = Langevin_averaged(1)
+    sim = Langevin_averaged(50)
     sim.langevin_eq()
-    # sim.plot_x()
+    sim.plot_x()
     sim.plot_y()
-    # sim.plot_z()
-    # sim.plot_spectrums()
+    sim.plot_z()
+    sim.plot_spectrums()
 
 
 def test_oam_langevin():
