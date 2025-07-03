@@ -99,6 +99,7 @@ class Langevin_averaged:
         # x[:, :, 0] = [1e-10, 1e-10, 1e-11]
         # v[:, :, 0] = 0
         x[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-11
+        x[:, 1, 0] -= 4e-7
         v[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-5
         self.x[:, 0] = np.average(x[:, :, 0], axis=0)
         self.v[:, 0] = np.average(v[:, :, 0], axis=0)
@@ -207,4 +208,19 @@ class Langevin_averaged:
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.legend()
+        plt.show(block=True)
+
+    def plot_summed_spectrum(self):
+        x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
+        x_fft = x_fft**2
+        y_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
+        y_fft = abs(y_fft) ** 2
+        z_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
+        z_fft = abs(z_fft) ** 2
+        total_fft = x_fft + z_fft
+
+        plt.plot(self.f * 1e-3, np.log10(total_fft), "black")
+        plt.xlim(0.1, 100)
+        plt.xlabel("f [kHz]")
+        plt.ylabel("S [a.u.]")
         plt.show(block=True)

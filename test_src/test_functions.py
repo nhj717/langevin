@@ -27,6 +27,7 @@ def test_langevin_averaged():
     sim.plot("y")
     sim.plot("z")
     sim.plot_spectrums()
+    sim.plot_summed_spectrum()
 
 
 def test_oam_langevin():
