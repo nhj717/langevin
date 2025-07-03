@@ -10,7 +10,7 @@ import beam_profile
 def initial_setup():
     diameter = 300  # in nanometers
     eps_glass = 3.9
-    power = 300  # in mW from both sides
+    power = 200  # in mW from both sides
     pressure = 1  # in mbar
     core_radius = 22  # in um
     N = int(1e5)  # Total number of sampling

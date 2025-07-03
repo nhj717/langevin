@@ -1,11 +1,11 @@
 from beam_profile import *
 from langevin_eq import *
 import langevin_averaged as langav
-from oam_langevin import *
+import oam_langevin as oamlan
 
 
 def test_field_distribution():
-    sim = OAM_profile(*initial_setup(1, [1, -1j]))
+    sim = OAM_profile(*initial_setup(1, [1, 0]))
     sim.fields()
     # sim.S_and_I()
     sim.standing_S_and_I()
@@ -30,5 +30,5 @@ def test_langevin_averaged():
 
 
 def test_oam_langevin():
-    sim = oam_Langevin(1)
+    sim = oamlan.oam_Langevin(*oamlan.initial_setup())
     sim.langevin_eq()
