@@ -23,6 +23,14 @@ def lorentzian(x, x0, a, gamma):
     return a * gamma / ((x0**2 - x**2) ** 2 + (x * gamma) ** 2)
 
 
+def coord_trafo(A, theta):
+    B = np.zeros_like(A, dtype="complex128")
+    B[0, :] = A[0, :] * np.cos(theta) + A[1, :] * np.sin(theta)
+    B[1, :] = -A[0, :] * np.sin(theta) + A[1, :] * np.cos(theta)
+    B[2, :] = A[2, :]
+    return B
+
+
 class oam_Langevin:
     def __init__(self, iteration):
         # units
@@ -65,6 +73,7 @@ class oam_Langevin:
         self.delt = 1e-7  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
+        self.f_start = int(np.abs(self.f - 1000).argmin())
         self.omega = 2 * np.pi * self.f
         self.x = np.zeros((3, self.N))
         self.v = np.zeros_like(self.x)
@@ -78,6 +87,7 @@ class oam_Langevin:
         # Thermal force
         factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0)
         f_therm = factor * np.random.randn(self.iteration, 3, self.N)
+        gravity = np.array([0, 1, 0]) * np.ones(self.iteration)[:, None] * (-9.8)
 
         x = np.zeros((self.iteration, 3, 2))
         v = np.zeros_like(x)
@@ -100,7 +110,10 @@ class oam_Langevin:
             )
 
             v[:, :, 1] = v[:, :, 0] + self.delt * (
-                -self.gamma0 * v[:, :, 0] + f_opt / self.m + f_therm[:, :, i] / self.m
+                -self.gamma0 * v[:, :, 0]
+                + f_opt / self.m
+                + f_therm[:, :, i] / self.m
+                + gravity
             )
             x[:, :, 1] = x[:, :, 0] + v[:, :, 1] * self.delt
 
@@ -140,6 +153,44 @@ class oam_Langevin:
         )
         plt.plot(self.f * 1e-3, np.log10(x_fft))
         plt.plot(self.f * 1e-3, np.log10(x_fft_fit))
+        # plt.xlim(0.1, 10000)
+        plt.xlabel("f [kHz]")
+        plt.ylabel("S [a.u.]")
+        plt.show(block=True)
+
+    def plot_y(self):
+        plt.plot(self.t, self.x[1, :])
+        plt.xlabel("Time [s]")
+        plt.ylabel("Y [m]")
+        plt.show(block=True)
+        plt.plot(self.x[1, :], self.m * self.v[1, :])
+        plt.xlabel("Y [m]")
+        plt.ylabel("P [kg*m/s]")
+        plt.show(block=True)
+
+        y_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
+        y_fft = abs(y_fft) ** 2
+        peak_w_y = self.omega[np.argmax(y_fft[self.f_start :])]
+        lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
+            lorentzian,
+            self.omega[self.f_start :],
+            y_fft[self.f_start :],
+            p0=[peak_w_y, 1e-6, self.gamma0],
+        )
+        y_fft_fit = lorentzian(
+            self.omega,
+            lorentzian_fit_coeff[0],
+            lorentzian_fit_coeff[1],
+            lorentzian_fit_coeff[2],
+        )
+        print(
+            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
+        )
+        print(
+            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz"
+        )
+        plt.plot(self.f * 1e-3, np.log10(y_fft))
+        plt.plot(self.f * 1e-3, np.log10(y_fft_fit))
         # plt.xlim(0.1, 10000)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
@@ -193,6 +244,21 @@ class oam_Langevin:
             lorentzian_fit_coeff[1],
             lorentzian_fit_coeff[2],
         )
+        y_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
+        y_fft = abs(y_fft) ** 2
+        peak_w_y = self.omega[np.argmax(y_fft[self.f_start :])]
+        lorentzian_fit_coeff1, lorentzian_fit_error1 = curve_fit(
+            lorentzian,
+            self.omega[self.f_start :],
+            y_fft[self.f_start :],
+            p0=[peak_w_y, 5e-6, self.gamma0],
+        )
+        y_fft_fit = lorentzian(
+            self.omega,
+            lorentzian_fit_coeff1[0],
+            lorentzian_fit_coeff1[1],
+            lorentzian_fit_coeff1[2],
+        )
         z_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
         z_fft = abs(z_fft) ** 2
         peak_w_z = self.omega[np.argmax(z_fft)]
@@ -207,13 +273,15 @@ class oam_Langevin:
         )
 
         print(
-            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz for x and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz for z"
+            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz for x, {lorentzian_fit_coeff1[2] / (2 * np.pi)}Hz for y and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz for z"
         )
 
         plt.plot(self.f * 1e-3, np.log10(x_fft), "orange", label="xfft")
         plt.plot(self.f * 1e-3, np.log10(x_fft_fit), "red", label="xfft fit")
-        plt.plot(self.f * 1e-3, np.log10(z_fft), "green", label="zfft")
-        plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "blue", label="zfft fit")
+        plt.plot(self.f * 1e-3, np.log10(y_fft), "cyan", label="yfft")
+        plt.plot(self.f * 1e-3, np.log10(y_fft_fit), "blue", label="yfft fit")
+        plt.plot(self.f * 1e-3, np.log10(z_fft), "brown", label="zfft")
+        plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "black", label="zfft fit")
         plt.xlim(0.1, 300)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")

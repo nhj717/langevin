@@ -6,6 +6,15 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import beam_profile
 
+def initial_setup():
+    diameter = 300      #in nanometers
+    eps_glass = 3.9
+    power = 300           #in mW
+    core_radius = 22        #in um
+    N = int(1e5)            #Total number of sampling
+    delt = 1e-7             #in seconds, time resolution of the simulation
+    iteration = 10          #number of sampling
+    return diameter,eps_glass,power,core_radius,N,delt,iteration
 
 def gamma(radius, density, cross_section, eta, pressure, T):
     mass = 4 * np.pi / 3 * radius**3 * density
@@ -24,7 +33,7 @@ def lorentzian(x, x0, a, gamma):
 
 
 class Langevin_averaged:
-    def __init__(self, iteration):
+    def __init__(self, diameter,eps_glass,power,core_radius,N,delt,iteration):
         # units
         mW = 1e-3
         um = 1e-6
@@ -35,7 +44,7 @@ class Langevin_averaged:
         self.wl = 1.064 * um
         self.k = 2 * np.pi / self.wl
         self.T = 300  # kelvins
-        radius = 300 / 2 * nm
+        radius = diameter / 2 * nm
         density = 2.2e3  # kgm-3
         cross_section = (
             np.pi * (0.36 * nm) ** 2
@@ -44,15 +53,14 @@ class Langevin_averaged:
         eta = 2.791 * 1e-7 * self.T**0.7355  # viscosity coefficient of the air    m^2/s
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
-        self.P = 2000 * mW  # power on each side
-        self.r_core = 15 * um
+        self.P = power * mW  # power on each side
+        self.r_core = core_radius * um
         self.beta = (
             2
             * np.pi
             / self.wl
             * (1 - 1 / 2 * (jn_zeros(0, 1) * self.wl / 2 / np.pi / self.r_core) ** 2)
         )
-        eps_glass = 3.9
         alpha0 = (
             4 * np.pi * const.epsilon_0 * radius**3 * (eps_glass - 1) / (eps_glass + 2)
         )
@@ -61,8 +69,8 @@ class Langevin_averaged:
         )
 
         self.iteration = iteration  # number of iterations
-        self.N = int(1e6)  # Number of sample points
-        self.delt = 1e-7  # resolution of the time array
+        self.N = N  # Number of sample points
+        self.delt = delt  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
         self.f_start = int(np.abs(self.f - 1000).argmin())
@@ -114,6 +122,41 @@ class Langevin_averaged:
 
             x[:, :, 0] = x[:, :, 1]
             v[:, :, 0] = v[:, :, 1]
+
+    def plot_x(self):
+        plt.plot(self.t, self.x[0, :])
+        plt.xlabel("Time [s]")
+        plt.ylabel("X [m]")
+        plt.show(block=True)
+        plt.plot(self.x[0, :], self.m * self.v[0, :])
+        plt.xlabel("X [m]")
+        plt.ylabel("P [kg*m/s]")
+        plt.show(block=True)
+
+        x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
+        x_fft = abs(x_fft) ** 2
+        peak_w_x = self.omega[np.argmax(x_fft)]
+        lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
+            lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
+        )
+        x_fft_fit = lorentzian(
+            self.omega,
+            lorentzian_fit_coeff[0],
+            lorentzian_fit_coeff[1],
+            lorentzian_fit_coeff[2],
+        )
+        print(
+            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
+        )
+        print(
+            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz"
+        )
+        plt.plot(self.f * 1e-3, np.log10(x_fft))
+        plt.plot(self.f * 1e-3, np.log10(x_fft_fit))
+        # plt.xlim(0.1, 10000)
+        plt.xlabel("f [kHz]")
+        plt.ylabel("S [a.u.]")
+        plt.show(block=True)
 
     def plot_x(self):
         plt.plot(self.t, self.x[0, :])
@@ -240,7 +283,10 @@ class Langevin_averaged:
         y_fft = abs(y_fft) ** 2
         peak_w_y = self.omega[np.argmax(y_fft[self.f_start :])]
         lorentzian_fit_coeff1, lorentzian_fit_error1 = curve_fit(
-            lorentzian, self.omega[self.f_start :], y_fft[self.f_start :], p0=[peak_w_y, 5e-6, self.gamma0]
+            lorentzian,
+            self.omega[self.f_start :],
+            y_fft[self.f_start :],
+            p0=[peak_w_y, 5e-6, self.gamma0],
         )
         y_fft_fit = lorentzian(
             self.omega,

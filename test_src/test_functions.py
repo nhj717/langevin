@@ -1,6 +1,6 @@
 from beam_profile import *
 from langevin_eq import *
-from langevin_averaged import *
+import langevin_averaged as langav
 from oam_langevin import *
 
 
@@ -21,7 +21,7 @@ def test_langevin_eq():
 
 
 def test_langevin_averaged():
-    sim = Langevin_averaged(100)
+    sim = langav.Langevin_averaged(*langav.initial_setup())
     sim.langevin_eq()
     sim.plot_x()
     sim.plot_y()
