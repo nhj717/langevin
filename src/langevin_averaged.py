@@ -10,12 +10,13 @@ import beam_profile
 def initial_setup():
     diameter = 300  # in nanometers
     eps_glass = 3.9
-    power = 300  # in mW
+    power = 300  # in mW from both sides
+    pressure = 1  # in mbar
     core_radius = 22  # in um
     N = int(1e5)  # Total number of sampling
-    delt = 1e-7  # in seconds, time resolution of the simulation
+    delt = 1e-6  # in seconds, time resolution of the simulation
     iteration = 10  # number of sampling
-    return diameter, eps_glass, power, core_radius, N, delt, iteration
+    return diameter, eps_glass, power, pressure, core_radius, N, delt, iteration
 
 
 def gamma(radius, density, cross_section, eta, pressure, T):
@@ -35,7 +36,9 @@ def lorentzian(x, x0, a, gamma):
 
 
 class Langevin_averaged:
-    def __init__(self, diameter, eps_glass, power, core_radius, N, delt, iteration):
+    def __init__(
+        self, diameter, eps_glass, power, pressure, core_radius, N, delt, iteration
+    ):
         # units
         mW = 1e-3
         um = 1e-6
@@ -75,7 +78,7 @@ class Langevin_averaged:
         self.delt = delt  # resolution of the time array
         self.t = np.linspace(0, self.N * self.delt, self.N)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
-        self.f_start = int(np.abs(self.f - 1000).argmin())
+        self.f_start = int(np.abs(self.f - 50).argmin())
         self.omega = 2 * np.pi * self.f
         self.x = np.zeros((3, self.N))
         self.v = np.zeros_like(self.x)
@@ -141,118 +144,10 @@ class Langevin_averaged:
         plt.ylabel("P [kg*m/s]")
         plt.show(block=True)
 
-        x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
+        x_fft = 2.0 / self.N * fft.fft(self.x[index, :])[: int(self.N / 2)]
         self.x_fft = abs(x_fft) ** 2
         plt.plot(self.f * 1e-3, np.log10(x_fft))
         plt.xlim(0.5, 100)
-        plt.xlabel("f [kHz]")
-        plt.ylabel("S [a.u.]")
-        plt.show(block=True)
-
-    def plot_x(self):
-        plt.plot(self.t, self.x[0, :])
-        plt.xlabel("Time [s]")
-        plt.ylabel("X [m]")
-        plt.show(block=True)
-        plt.plot(self.x[0, :], self.m * self.v[0, :])
-        plt.xlabel("X [m]")
-        plt.ylabel("P [kg*m/s]")
-        plt.show(block=True)
-
-        x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
-        x_fft = abs(x_fft) ** 2
-        peak_w_x = self.omega[np.argmax(x_fft)]
-        lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
-        )
-        x_fft_fit = lorentzian(
-            self.omega,
-            lorentzian_fit_coeff[0],
-            lorentzian_fit_coeff[1],
-            lorentzian_fit_coeff[2],
-        )
-        print(
-            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
-        )
-        print(
-            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz"
-        )
-        plt.plot(self.f * 1e-3, np.log10(x_fft))
-        plt.plot(self.f * 1e-3, np.log10(x_fft_fit))
-        # plt.xlim(0.1, 10000)
-        plt.xlabel("f [kHz]")
-        plt.ylabel("S [a.u.]")
-        plt.show(block=True)
-
-    def plot_y(self):
-        plt.plot(self.t, self.x[1, :])
-        plt.xlabel("Time [s]")
-        plt.ylabel("Y [m]")
-        plt.show(block=True)
-        plt.plot(self.x[1, :], self.m * self.v[1, :])
-        plt.xlabel("Y [m]")
-        plt.ylabel("P [kg*m/s]")
-        plt.show(block=True)
-
-        y_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
-        y_fft = abs(y_fft) ** 2
-        peak_w_y = self.omega[np.argmax(y_fft[self.f_start :])]
-        lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian,
-            self.omega[self.f_start :],
-            y_fft[self.f_start :],
-            p0=[peak_w_y, 1e-6, self.gamma0],
-        )
-        y_fft_fit = lorentzian(
-            self.omega,
-            lorentzian_fit_coeff[0],
-            lorentzian_fit_coeff[1],
-            lorentzian_fit_coeff[2],
-        )
-        print(
-            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
-        )
-        print(
-            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz"
-        )
-        plt.plot(self.f * 1e-3, np.log10(y_fft))
-        plt.plot(self.f * 1e-3, np.log10(y_fft_fit))
-        # plt.xlim(0.1, 10000)
-        plt.xlabel("f [kHz]")
-        plt.ylabel("S [a.u.]")
-        plt.show(block=True)
-
-    def plot_z(self):
-        plt.plot(self.t, self.x[2, :])
-        plt.xlabel("Time [s]")
-        plt.ylabel("Z [m]")
-        plt.show(block=True)
-        plt.plot(self.x[2, :], self.m * self.v[2, :])
-        plt.xlabel("Z [m]")
-        plt.ylabel("P [kg*m/s]")
-        plt.show(block=True)
-
-        x_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
-        x_fft = abs(x_fft) ** 2
-        peak_w_z = self.omega[np.argmax(x_fft)]
-        lorentzian_fit_coeff, lorentzian_fit_error2 = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[peak_w_z, 5e-6, self.gamma0]
-        )
-        x_fft_fit = lorentzian(
-            self.omega,
-            lorentzian_fit_coeff[0],
-            lorentzian_fit_coeff[1],
-            lorentzian_fit_coeff[2],
-        )
-        print(
-            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
-        )
-        print(
-            f"Actual gamma0 is {self.gamma0 / (2 * np.pi) }Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi) }Hz"
-        )
-        plt.plot(self.f * 1e-3, np.log10(x_fft))
-        plt.plot(self.f * 1e-3, np.log10(x_fft_fit))
-        # plt.xlim(0.1, 10000)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.show(block=True)
@@ -308,7 +203,7 @@ class Langevin_averaged:
         plt.plot(self.f * 1e-3, np.log10(y_fft_fit), "blue", label="yfft fit")
         plt.plot(self.f * 1e-3, np.log10(z_fft), "brown", label="zfft")
         plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "black", label="zfft fit")
-        plt.xlim(0.1, 300)
+        plt.xlim(0.1, 100)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.legend()
