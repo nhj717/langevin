@@ -6,15 +6,17 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import beam_profile
 
+
 def initial_setup():
-    diameter = 300      #in nanometers
+    diameter = 300  # in nanometers
     eps_glass = 3.9
-    power = 300           #in mW
-    core_radius = 22        #in um
-    N = int(1e5)            #Total number of sampling
-    delt = 1e-7             #in seconds, time resolution of the simulation
-    iteration = 10          #number of sampling
-    return diameter,eps_glass,power,core_radius,N,delt,iteration
+    power = 300  # in mW
+    core_radius = 22  # in um
+    N = int(1e5)  # Total number of sampling
+    delt = 1e-7  # in seconds, time resolution of the simulation
+    iteration = 10  # number of sampling
+    return diameter, eps_glass, power, core_radius, N, delt, iteration
+
 
 def gamma(radius, density, cross_section, eta, pressure, T):
     mass = 4 * np.pi / 3 * radius**3 * density
@@ -33,7 +35,7 @@ def lorentzian(x, x0, a, gamma):
 
 
 class Langevin_averaged:
-    def __init__(self, diameter,eps_glass,power,core_radius,N,delt,iteration):
+    def __init__(self, diameter, eps_glass, power, core_radius, N, delt, iteration):
         # units
         mW = 1e-3
         um = 1e-6
@@ -123,37 +125,26 @@ class Langevin_averaged:
             x[:, :, 0] = x[:, :, 1]
             v[:, :, 0] = v[:, :, 1]
 
-    def plot_x(self):
-        plt.plot(self.t, self.x[0, :])
+    def plot(self, xyz):
+        if xyz == "x":
+            index = 0
+        elif xyz == "y":
+            index = 1
+        else:
+            index = 2
+        plt.plot(self.t, self.x[index, :])
         plt.xlabel("Time [s]")
-        plt.ylabel("X [m]")
+        plt.ylabel(f"{xyz} [m]")
         plt.show(block=True)
-        plt.plot(self.x[0, :], self.m * self.v[0, :])
-        plt.xlabel("X [m]")
+        plt.plot(self.x[index, :], self.m * self.v[index, :])
+        plt.xlabel(f"{xyz} [m]")
         plt.ylabel("P [kg*m/s]")
         plt.show(block=True)
 
         x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
-        x_fft = abs(x_fft) ** 2
-        peak_w_x = self.omega[np.argmax(x_fft)]
-        lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
-        )
-        x_fft_fit = lorentzian(
-            self.omega,
-            lorentzian_fit_coeff[0],
-            lorentzian_fit_coeff[1],
-            lorentzian_fit_coeff[2],
-        )
-        print(
-            f"Peak position is {lorentzian_fit_coeff[0]} rad. Hz and the amplitude is {lorentzian_fit_coeff[1]}"
-        )
-        print(
-            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz"
-        )
+        self.x_fft = abs(x_fft) ** 2
         plt.plot(self.f * 1e-3, np.log10(x_fft))
-        plt.plot(self.f * 1e-3, np.log10(x_fft_fit))
-        # plt.xlim(0.1, 10000)
+        plt.xlim(0.5, 100)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.show(block=True)
