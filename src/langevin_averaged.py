@@ -90,7 +90,7 @@ class Langevin_averaged:
             self.P, self.r_core, self.alpha, self.beta
         )
         # Thermal force
-        factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0/3)
+        factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0)
         f_therm = factor * np.random.randn(self.iteration, 3, self.N)
         gravity = np.array([0, 1, 0]) * np.ones(self.iteration)[:, None] * (-9.8)
 
