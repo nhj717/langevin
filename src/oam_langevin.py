@@ -8,10 +8,10 @@ import beam_profile
 
 
 def initial_setup():
-    diameter = 300  # in nanometers
+    diameter = 400  # in nanometers
     eps_glass = 3.9
-    power = 200  # in mW from both sides
-    pressure = 1  # in mbar
+    power = 1  # in mW from both sides
+    pressure = 2  # in mbar
     core_radius = 22  # in um
     N = int(1e5)  # Total number of sampling
     delt = 1e-6  # in seconds, time resolution of the simulation
@@ -62,7 +62,7 @@ class oam_Langevin:
         cross_section = (
             np.pi * (0.36 * nm) ** 2
         )  # mean cross-section of the air molecules
-        pressure = 1 * mbar
+        pressure = pressure * mbar
         eta = 2.791 * 1e-7 * self.T**0.7355  # viscosity coefficient of the air    m^2/s
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)

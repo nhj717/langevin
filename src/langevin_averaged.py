@@ -8,14 +8,14 @@ import beam_profile
 
 
 def initial_setup():
-    diameter = 300  # in nanometers
+    diameter = 400  # in nanometers
     eps_glass = 3.9
-    power = 200  # in mW from both sides
-    pressure = 1  # in mbar
+    power = 150  # in mW from both sides
+    pressure = 2  # in mbar
     core_radius = 22  # in um
     N = int(1e5)  # Total number of sampling
-    delt = 1e-6  # in seconds, time resolution of the simulation
-    iteration = 10  # number of sampling
+    delt = 1e-4  # in seconds, time resolution of the simulation
+    iteration = 20  # number of sampling
     return diameter, eps_glass, power, pressure, core_radius, N, delt, iteration
 
 
@@ -54,7 +54,7 @@ class Langevin_averaged:
         cross_section = (
             np.pi * (0.36 * nm) ** 2
         )  # mean cross-section of the air molecules
-        pressure = 1 * mbar
+        pressure = pressure * mbar
         eta = 2.791 * 1e-7 * self.T**0.7355  # viscosity coefficient of the air    m^2/s
         self.m = density * 4 / 3 * np.pi * radius**3
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
@@ -90,7 +90,7 @@ class Langevin_averaged:
             self.P, self.r_core, self.alpha, self.beta
         )
         # Thermal force
-        factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0)
+        factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0/3)
         f_therm = factor * np.random.randn(self.iteration, 3, self.N)
         gravity = np.array([0, 1, 0]) * np.ones(self.iteration)[:, None] * (-9.8)
 
@@ -146,9 +146,9 @@ class Langevin_averaged:
         plt.show(block=True)
 
         x_fft = 2.0 / self.N * fft.fft(self.x[index, :])[: int(self.N / 2)]
-        self.x_fft = abs(x_fft) ** 2
+        x_fft = abs(x_fft) ** 2
         plt.plot(self.f * 1e-3, np.log10(x_fft))
-        plt.xlim(0.5, 100)
+        plt.xlim(0.5, 5)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.show(block=True)
@@ -204,7 +204,7 @@ class Langevin_averaged:
         plt.plot(self.f * 1e-3, np.log10(y_fft_fit), "blue", label="yfft fit")
         plt.plot(self.f * 1e-3, np.log10(z_fft), "brown", label="zfft")
         plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "black", label="zfft fit")
-        plt.xlim(0.1, 100)
+        plt.xlim(0.1, 5)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.legend()
@@ -212,7 +212,7 @@ class Langevin_averaged:
 
     def plot_summed_spectrum(self):
         x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
-        x_fft = x_fft**2
+        x_fft = abs(x_fft) ** 2
         y_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
         y_fft = abs(y_fft) ** 2
         z_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
