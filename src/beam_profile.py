@@ -53,9 +53,9 @@ def oam_standing_wave(P, r_core, alpha, beta):
     f_r = (
         lambda x, y, z: -2
         * factor
-        * sp.jve(0, u01 * np.sqrt(x**2 + y**2) / r_core)
-        * sp.jve(1, u01 * np.sqrt(x**2 + y**2) / r_core)
-        * u01
+        * sp.jve(0, u11 * np.sqrt(x**2 + y**2) / r_core)
+        * sp.jve(1, u11 * np.sqrt(x**2 + y**2) / r_core)
+        * u11
         / r_core
         * np.cos(beta * z) ** 2
     )
@@ -239,12 +239,21 @@ class OAM_profile:
         )
         z_target = 0 * self.lamb / 8
         zi = (np.abs(self.z - z_target)).argmin()
-        S_r_max = np.max(abs(self.S_cyl[0, :, :, zi]))
-        S_theta_max = np.max(abs(self.S_cyl[1, :, :, zi]))
+        I_max_index = np.argmax(I[int(np.size(self.x) / 2), :, zi])
+        S_r_max = abs(self.S_cyl[0, int(np.size(self.x) / 2), I_max_index, zi])
+        S_theta_max = abs(self.S_cyl[1, int(np.size(self.x) / 2), I_max_index, zi])
         print(f"Value of S_r is {S_r_max * 1E-19} a.u.")
         print(f"Value of S_theta is {S_theta_max*1E-19} a.u.")
 
         I_zi = I[:, :, zi] / np.max(I[:, :, zi])
+        circle2 = plt.Circle(
+            (0, self.y[I_max_index]),
+            self.a / 50,
+            fill=True,
+            color="black",
+            linewidth=1,
+            linestyle="--",
+        )
 
         pcm = ax.pcolor(xx, yy, I_zi, cmap="jet")
         cb = plt.colorbar(pcm, shrink=0.75)
@@ -258,5 +267,6 @@ class OAM_profile:
         )
         ax.set(aspect="equal")
         ax.add_patch(circle)
+        ax.add_patch(circle2)
 
         plt.show(block=True)
