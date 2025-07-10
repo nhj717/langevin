@@ -14,7 +14,7 @@ def initial_setup():
     pressure = 2  # in mbar
     core_radius = 22  # in um
     N = int(1e5)  # Total number of sampling
-    delt = 1e-4  # in seconds, time resolution of the simulation
+    delt = 1e-5  # in seconds, time resolution of the simulation
     iteration = 20  # number of sampling
     return diameter, eps_glass, power, pressure, core_radius, N, delt, iteration
 
@@ -82,12 +82,13 @@ class Langevin_averaged:
         self.omega = 2 * np.pi * self.f
         self.x = np.zeros((3, self.N))
         self.v = np.zeros_like(self.x)
+        self.mode_number = 1
 
     def langevin_eq(self):
 
         # Optical force
-        f_opt_r, f_opt_phi, f_opt_z = beam_profile.gaussian_standing_wave(
-            self.P, self.r_core, self.alpha, self.beta
+        f_opt_r, f_opt_phi, f_opt_z = beam_profile.oam_standing_wave(
+            self.P, self.r_core, self.alpha, self.beta, self.mode_number
         )
         # Thermal force
         factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0)
@@ -151,6 +152,10 @@ class Langevin_averaged:
         plt.xlim(0.5, 5)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
+        plt.show(block=True)
+
+    def plot_xy_position(self):
+        plt.plot(self.x[0,:],self.x[1,:])
         plt.show(block=True)
 
     def plot_spectrums(self):
