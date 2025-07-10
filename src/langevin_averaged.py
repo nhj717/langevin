@@ -11,10 +11,10 @@ def initial_setup():
     diameter = 400  # in nanometers
     eps_glass = 3.9
     power = 200  # in mW from both sides
-    pressure = 1  # in mbar
+    pressure = 1000  # in mbar
     core_radius = 22  # in um
-    N = int(1e5)  # Total number of sampling
-    delt = 1e-5  # in seconds, time resolution of the simulation
+    N = int(1e6)  # Total number of sampling
+    delt = 1e-7  # in seconds, time resolution of the simulation
     iteration = 20  # number of sampling
     return diameter, eps_glass, power, pressure, core_radius, N, delt, iteration
 
@@ -82,7 +82,6 @@ class Langevin_averaged:
         self.omega = 2 * np.pi * self.f
         self.x = np.zeros((3, self.N))
         self.v = np.zeros_like(self.x)
-        self.mode_number = 1
 
     def langevin_eq(self):
 

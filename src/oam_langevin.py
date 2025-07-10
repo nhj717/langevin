@@ -10,7 +10,7 @@ import beam_profile
 def initial_setup():
     diameter = 400  # in nanometers
     eps_glass = 3.9
-    power = 100  # in mW from both sides
+    power = 200  # in mW from both sides
     pressure = 1  # in mbar
     core_radius = 22  # in um
     N = int(1e5)  # Total number of sampling
@@ -90,12 +90,13 @@ class oam_Langevin:
         self.omega = 2 * np.pi * self.f
         self.x = np.zeros((3, self.N))
         self.v = np.zeros_like(self.x)
+        self.mode_number = 1
 
     def langevin_eq(self):
 
         # Optical force
-        f_opt_r, f_opt_phi, f_opt_z = beam_profile.gaussian_standing_wave(
-            self.P, self.r_core, self.alpha, self.beta
+        f_opt_r, f_opt_phi, f_opt_z = beam_profile.oam_standing_wave(
+            self.P, self.r_core, self.alpha, self.beta, self.mode_number
         )
         # Thermal force
         factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0)
@@ -117,6 +118,10 @@ class oam_Langevin:
                 np.array(
                     [np.cos(theta), np.sin(theta), np.zeros_like(theta)]
                     * f_opt_r(x[:, 0, 0], x[:, 1, 0], x[:, 2, 0])
+                ).T
+                + np.array(
+                    [-np.sin(theta), np.cos(theta), np.zeros_like(theta)]
+                    * f_opt_phi(x[:, 0, 0], x[:, 1, 0], x[:, 2, 0])
                 ).T
                 + np.array([0, 0, 1])
                 * f_opt_z(x[:, 0, 0], x[:, 1, 0], x[:, 2, 0])[:, None]
@@ -158,6 +163,10 @@ class oam_Langevin:
         plt.xlim(0.5, 100)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
+        plt.show(block=True)
+
+    def plot_xy_position(self):
+        plt.plot(self.x[0, :], self.x[1, :])
         plt.show(block=True)
 
     def plot_spectrums(self):

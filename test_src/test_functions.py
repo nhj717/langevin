@@ -34,3 +34,6 @@ def test_langevin_averaged():
 def test_oam_langevin():
     sim = oamlan.oam_Langevin(*oamlan.initial_setup())
     sim.langevin_eq()
+    sim.plot_xy_position()
+    sim.plot("x")
+    sim.plot("y")
