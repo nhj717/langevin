@@ -23,6 +23,7 @@ def test_langevin_eq():
 def test_langevin_averaged():
     sim = langav.Langevin_averaged(*langav.initial_setup())
     sim.langevin_eq()
+    sim.plot_xy_position()
     sim.plot("x")
     sim.plot("y")
     sim.plot("z")

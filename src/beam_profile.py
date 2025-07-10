@@ -35,7 +35,7 @@ def gaussian_standing_wave(P, r_core, alpha, beta):
         / r_core
         * np.cos(beta * z) ** 2
     )
-    f_phi = lambda x, y: 0
+    f_phi = lambda x, y, z: 0
     f_z = (
         lambda x, y, z: -factor
         * sp.jve(0, u01 * np.sqrt(x**2 + y**2) / r_core) ** 2
