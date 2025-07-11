@@ -10,13 +10,24 @@ import beam_profile
 def initial_setup():
     diameter = 400  # in nanometers
     eps_glass = 3.9
-    power = 200  # in mW from both sides
-    pressure = 1  # in mbar
+    power = 500  # in mW from both sides
+    pressure = 1000  # in mbar
     core_radius = 22  # in um
     N = int(1e5)  # Total number of sampling
     delt = 1e-6  # in seconds, time resolution of the simulation
     iteration = 10  # number of sampling
-    return diameter, eps_glass, power, pressure, core_radius, N, delt, iteration
+    mode_number = 1
+    return (
+        diameter,
+        eps_glass,
+        power,
+        pressure,
+        core_radius,
+        N,
+        delt,
+        iteration,
+        mode_number,
+    )
 
 
 def gamma(radius, density, cross_section, eta, pressure, T):
@@ -45,7 +56,16 @@ def coord_trafo(A, theta):
 
 class oam_Langevin:
     def __init__(
-        self, diameter, eps_glass, power, pressure, core_radius, N, delt, iteration
+        self,
+        diameter,
+        eps_glass,
+        power,
+        pressure,
+        core_radius,
+        N,
+        delt,
+        iteration,
+        mode_number,
     ):
         # units
         mW = 1e-3
@@ -90,7 +110,7 @@ class oam_Langevin:
         self.omega = 2 * np.pi * self.f
         self.x = np.zeros((3, self.N))
         self.v = np.zeros_like(self.x)
-        self.mode_number = 1
+        self.mode_number = mode_number
 
     def langevin_eq(self):
 
