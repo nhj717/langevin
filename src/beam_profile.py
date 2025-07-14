@@ -78,6 +78,38 @@ def oam_standing_wave(P, r_core, alpha, beta, l):
     return f_r, f_phi, f_z
 
 
+def plot_function_face(x, y, I, fixed_val, orientation="z"):
+    facecolors = plt.cm.viridis(norm)
+
+    if orientation == "z":
+        ax.plot_surface(
+            x,
+            y,
+            np.full_like(I, fixed_val),
+            facecolors=facecolors,
+            rstride=1,
+            cstride=1,
+        )
+    elif orientation == "x":
+        ax.plot_surface(
+            np.full_like(I, fixed_val),
+            x,
+            y,
+            facecolors=facecolors,
+            rstride=1,
+            cstride=1,
+        )
+    elif orientation == "y":
+        ax.plot_surface(
+            x,
+            np.full_like(I, fixed_val),
+            y,
+            facecolors=facecolors,
+            rstride=1,
+            cstride=1,
+        )
+
+
 class OAM_profile:
     def __init__(self, wavelength, diameter, mode_number, polarization):
         # set initial values
@@ -281,42 +313,39 @@ class OAM_profile:
 
     def volume_plot(self):
         I = self.I
-        xx, yy, zz = np.meshgrid(self.x, self.y, self.z, indexing="ij")
+        xx, yy, zz = np.meshgrid(self.x, self.y, self.z)
+        cut_size = 0.5
+        xc0, xc1 = xx.min(), xx.max()
+        yc0, yc1 = yy.min(), yy.max() - cut_size
+        zc0, zc1 = zz.max() - cut_size, zz.max()
 
         fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_subplot(111, projection="3d")
+        ax = fig.add_subplot(projection="3d")
 
         fig.suptitle(f"Field distribution of a standing OAM")
 
         z_target = 0
         zi = (np.abs(self.z - z_target)).argmin()
         I = I / np.max(I[:, :, zi])
-        kw = {
-            "vmin": I.min(),
-            "vmax": I.max(),
-            "levels": np.linspace(I.min(), I.max(), 10),
-        }
-        _ = ax.contourf(xx[:, :, 0], yy[:, :, 0], I[:, :, 0], zdir="z", offset=0, **kw)
-        _ = ax.contourf(xx[0, :, :], I[0, :, :], zz[0, :, :], zdir="y", offset=0, **kw)
-        C = ax.contourf(
-            I[:, -1, :], yy[:, -1, :], zz[:, -1, :], zdir="x", offset=xx.max(), **kw
-        )
-        # --
+        # Add functional faces (see earlier logic)
+        # Bottom, left, front
+        plot_function_face((x0, x1), (y0, y1), z0, "z")
+        plot_function_face((x0, x1), (z0, z1), y1, "y")
+        # Top (with cut-out), right, back (split sections)
+        plot_function_face((x0, x1), (yc1, y1), z1, "z")
+        plot_function_face((x0, x1), (yc0, yc1), zc0, "z")
+        plot_function_face((yc1, y1), (z0, z1), x1, "x")
+        plot_function_face((yc0, yc1), (z0, zc0), x1, "x")
+        plot_function_face((yc1, y1), (z0, z1), x0, "x")
+        plot_function_face((yc0, yc1), (z0, zc0), x0, "x")
+        plot_function_face((x0, x1), (z0, zc0), y0, "y")
+        plot_function_face((x0, x1), (zc0, zc1), yc1, "y")
 
-        # Set limits of the plot from coord limits
-        xmin, xmax = xx.min(), xx.max()
-        ymin, ymax = yy.min(), yy.max()
-        zmin, zmax = zz.min(), zz.max()
-        ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
+        # Set an equal aspect ratio
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_zlabel("Z")
+        ax.set_box_aspect([1, 2, 1])
+        plt.tight_layout()
 
-        # Plot edges
-        edges_kw = dict(color="0.4", linewidth=1, zorder=1e3)
-        ax.plot([xmax, xmax], [ymin, ymax], 0, **edges_kw)
-        ax.plot([xmin, xmax], [ymin, ymin], 0, **edges_kw)
-        ax.plot([xmax, xmax], [ymin, ymin], [zmin, zmax], **edges_kw)
-
-        ax.set(aspect="equal")
-        ax.view_init(40, -30, 0)
-        ax.set_box_aspect(None, zoom=0.9)
-        fig.colorbar(C, ax=ax, fraction=0.02, pad=0.1, label="Name [units]")
         plt.show(block=True)
