@@ -278,3 +278,45 @@ class OAM_profile:
         ax.add_patch(circle2)
 
         plt.show(block=True)
+
+    def volume_plot(self):
+        I = self.I
+        xx, yy, zz = np.meshgrid(self.x, self.y, self.z, indexing="ij")
+
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111, projection="3d")
+
+        fig.suptitle(f"Field distribution of a standing OAM")
+
+        z_target = 0
+        zi = (np.abs(self.z - z_target)).argmin()
+        I = I / np.max(I[:, :, zi])
+        kw = {
+            "vmin": I.min(),
+            "vmax": I.max(),
+            "levels": np.linspace(I.min(), I.max(), 10),
+        }
+        _ = ax.contourf(xx[:, :, 0], yy[:, :, 0], I[:, :, 0], zdir="z", offset=0, **kw)
+        _ = ax.contourf(xx[0, :, :], I[0, :, :], zz[0, :, :], zdir="y", offset=0, **kw)
+        C = ax.contourf(
+            I[:, -1, :], yy[:, -1, :], zz[:, -1, :], zdir="x", offset=xx.max(), **kw
+        )
+        # --
+
+        # Set limits of the plot from coord limits
+        xmin, xmax = xx.min(), xx.max()
+        ymin, ymax = yy.min(), yy.max()
+        zmin, zmax = zz.min(), zz.max()
+        ax.set(xlim=[xmin, xmax], ylim=[ymin, ymax], zlim=[zmin, zmax])
+
+        # Plot edges
+        edges_kw = dict(color="0.4", linewidth=1, zorder=1e3)
+        ax.plot([xmax, xmax], [ymin, ymax], 0, **edges_kw)
+        ax.plot([xmin, xmax], [ymin, ymin], 0, **edges_kw)
+        ax.plot([xmax, xmax], [ymin, ymin], [zmin, zmax], **edges_kw)
+
+        ax.set(aspect="equal")
+        ax.view_init(40, -30, 0)
+        ax.set_box_aspect(None, zoom=0.9)
+        fig.colorbar(C, ax=ax, fraction=0.02, pad=0.1, label="Name [units]")
+        plt.show(block=True)

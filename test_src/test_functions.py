@@ -9,7 +9,8 @@ def test_field_distribution():
     sim.fields()
     sim.S_and_I()
     # sim.standing_S_and_I()
-    sim.plot_field_dist()
+    # sim.plot_field_dist()
+    sim.volume_plot()
 
 
 def test_langevin_eq():
