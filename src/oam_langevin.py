@@ -10,11 +10,11 @@ import beam_profile
 def initial_setup():
     diameter = 400  # in nanometers
     eps_glass = 3.9
-    power = 500  # in mW from both sides
+    power = 400  # in mW from both sides
     pressure = 1000  # in mbar
     core_radius = 22  # in um
     N = int(5e6)  # Total number of sampling
-    delt = 2e-6  # in seconds, time resolution of the simulation
+    delt = 1e-6  # in seconds, time resolution of the simulation
     iteration = 1  # number of sampling
     mode_number = 1
     return (
@@ -125,8 +125,8 @@ class oam_Langevin:
             self.P, self.r_core, self.alpha, self.beta, self.mode_number
         )
         # Thermal force
-        # factor = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m)
-        # f_therm = factor * np.random.randn(self.iteration, 3, self.N)
+        factor = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m)
+        f_therm = factor * np.random.randn(self.iteration, 3, self.N)
         gravity = np.array([0, 1, 0]) * np.ones(self.iteration)[:, None] * (-9.8)
 
         x = np.zeros((self.iteration, 3, 2))
@@ -134,7 +134,7 @@ class oam_Langevin:
         # x[:, :, 0] = [1e-10, 1e-10, 1e-11]
         # v[:, :, 0] = 0
         x[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-11
-        x[:, 1, 0] -= 1e-5
+        x[:, 1, 0] += 1e-5
         v[:, :, 0] = 0 * np.random.randn(self.iteration, 3) * 1e-5
         self.x[:, 0] = np.average(x[:, :, 0], axis=0)
         self.v[:, 0] = np.average(v[:, :, 0], axis=0)
@@ -157,7 +157,7 @@ class oam_Langevin:
             v[:, :, 1] = v[:, :, 0] + self.delt * (
                 -self.gamma0 * v[:, :, 0]
                 + f_opt / self.m
-                # + 0 * f_therm[:, :, i]
+                + 0 * f_therm[:, :, i]
                 + gravity
             )
             x[:, :, 1] = x[:, :, 0] + v[:, :, 1] * self.delt
@@ -186,14 +186,16 @@ class oam_Langevin:
 
         x_fft = 2.0 / self.N * fft.fft(self.x[index, :])[: int(self.N / 2)]
         self.x_fft = abs(x_fft) ** 2
-        plt.plot(self.f * 1e-3, np.log10(x_fft))
-        # plt.xlim(0.5, 100)
-        plt.xlabel("f [kHz]")
+        plt.plot(self.f, np.log10(x_fft))
+        plt.xlim(0.2, 1000)
+        plt.xlabel("f [Hz]")
         plt.ylabel("S [a.u.]")
         plt.show(block=True)
 
     def plot_xy_position(self):
         plt.plot(self.x[0, :], self.x[1, :])
+        plt.xlim(-1.5e-5, 1.5e-5)
+        plt.ylim(-1.5e-5, 1.5e-5)
         plt.show(block=True)
 
     def plot_spectrums(self):
