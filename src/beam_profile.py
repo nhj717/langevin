@@ -78,38 +78,6 @@ def oam_standing_wave(P, r_core, alpha, beta, l):
     return f_r, f_phi, f_z
 
 
-def plot_function_face(x, y, I, fixed_val, orientation="z"):
-    facecolors = plt.cm.viridis(norm)
-
-    if orientation == "z":
-        ax.plot_surface(
-            x,
-            y,
-            np.full_like(I, fixed_val),
-            facecolors=facecolors,
-            rstride=1,
-            cstride=1,
-        )
-    elif orientation == "x":
-        ax.plot_surface(
-            np.full_like(I, fixed_val),
-            x,
-            y,
-            facecolors=facecolors,
-            rstride=1,
-            cstride=1,
-        )
-    elif orientation == "y":
-        ax.plot_surface(
-            x,
-            np.full_like(I, fixed_val),
-            y,
-            facecolors=facecolors,
-            rstride=1,
-            cstride=1,
-        )
-
-
 class OAM_profile:
     def __init__(self, wavelength, diameter, mode_number, polarization):
         # set initial values
@@ -313,33 +281,80 @@ class OAM_profile:
 
     def volume_plot(self):
         I = self.I
+
         xx, yy, zz = np.meshgrid(self.x, self.y, self.z)
-        cut_size = 0.5
-        xc0, xc1 = xx.min(), xx.max()
-        yc0, yc1 = yy.min(), yy.max() - cut_size
-        zc0, zc1 = zz.max() - cut_size, zz.max()
 
         fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(projection="3d")
 
+        def plot_function_face(x, y, fixed_val, I, orientation="z"):
+
+            norm = (I - I.min()) / (I.max() - I.min())
+            facecolors = plt.cm.viridis(norm)
+
+            if orientation == "z":
+                ax.plot_surface(
+                    x,
+                    y,
+                    np.full_like(I, fixed_val),
+                    facecolors=facecolors,
+                    rstride=1,
+                    cstride=1,
+                )
+            elif orientation == "x":
+                ax.plot_surface(
+                    np.full_like(I, fixed_val),
+                    x,
+                    y,
+                    facecolors=facecolors,
+                    rstride=1,
+                    cstride=1,
+                )
+            elif orientation == "y":
+                ax.plot_surface(
+                    x,
+                    np.full_like(I, fixed_val),
+                    y,
+                    facecolors=facecolors,
+                    rstride=1,
+                    cstride=1,
+                )
+
         fig.suptitle(f"Field distribution of a standing OAM")
 
-        z_target = 0
-        zi = (np.abs(self.z - z_target)).argmin()
-        I = I / np.max(I[:, :, zi])
+        z0 = 0
+        zc = int(np.size(self.z) / 2)
+        z1 = np.size(self.z) - 1
+        y0 = 0
+        yc = int(np.size(self.y) / 2)
+        y1 = np.size(self.y) - 1
+        x0 = 0
+        x1 = np.size(self.x) - 1
         # Add functional faces (see earlier logic)
         # Bottom, left, front
-        plot_function_face((x0, x1), (y0, y1), z0, "z")
-        plot_function_face((x0, x1), (z0, z1), y1, "y")
+        plot_function_face(xx[:, :, z0], yy[:, :, z0], zz[0, 0, z0], I[:, :, z0], "z")
+        plot_function_face(xx[:, y1, :], zz[:, y1, :], yy[0, y1, 0], I[:, y1, :], "y")
         # Top (with cut-out), right, back (split sections)
-        plot_function_face((x0, x1), (yc1, y1), z1, "z")
-        plot_function_face((x0, x1), (yc0, yc1), zc0, "z")
-        plot_function_face((yc1, y1), (z0, z1), x1, "x")
-        plot_function_face((yc0, yc1), (z0, zc0), x1, "x")
-        plot_function_face((yc1, y1), (z0, z1), x0, "x")
-        plot_function_face((yc0, yc1), (z0, zc0), x0, "x")
-        plot_function_face((x0, x1), (z0, zc0), y0, "y")
-        plot_function_face((x0, x1), (zc0, zc1), yc1, "y")
+        # plot_function_face(
+        #     xx[:, yc:, z1], yy[:, yc:, z1], zz[0, 0, z1], I[:, yc:, z1], "z"
+        # )
+        # plot_function_face(
+        #     xx[:, :yc, z0], yy[:, :yc, z0], zz[0, 0, z0], I[:, :yc, z0], "z"
+        # )
+        # plot_function_face(
+        #     yy[x1, yc:, :], zz[x1, yc:, :], xx[x1, 0, 0], I[x1, yc:, :], "x"
+        # )
+        # plot_function_face(
+        #     yy[x1, :yc, :zc], zz[x1, :yc, :zc], xx[x0, 0, 0], I[x1, :yc, :zc], "x"
+        # )
+        # plot_function_face(
+        #     yy[x0, yc:, :], zz[x0, yc:, :], xx[x0, 0, 0], I[x0, yc:, :], "x"
+        # )
+        # plot_function_face(
+        #     yy[x0, :yc, :zc], zz[x0, :yc, :zc], xx[x0, 0, 0], I[x0, :yc, :zc], "x"
+        # )
+        # plot_function_face((x0, x1), (z0, zc0), y0, I[:, :yc, z0], "y")
+        # plot_function_face((x0, x1), (zc0, zc1), yc1, I[:, :yc, z0], "y")
 
         # Set an equal aspect ratio
         ax.set_xlabel("X")
