@@ -5,6 +5,7 @@ from scipy.special import jn_zeros
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import beam_profile
+import h5py
 
 
 def initial_setup():
@@ -13,9 +14,9 @@ def initial_setup():
     power = 400  # in mW from both sides
     pressure = 1000  # in mbar
     core_radius = 22  # in um
-    N = int(5e6)  # Total number of sampling
+    N = int(1e5)  # Total number of sampling
     delt = 1e-6  # in seconds, time resolution of the simulation
-    iteration = 1  # number of sampling
+    iteration = 10  # number of sampling
     mode_number = 1
     return (
         diameter,
@@ -167,6 +168,24 @@ class oam_Langevin:
 
             x[:, :, 0] = x[:, :, 1]
             v[:, :, 0] = v[:, :, 1]
+
+    def save_data(self, location, file_name, group_name):
+        with h5py.File("{}/{}.h5".format(location, file_name), "a") as hdf:
+            try:
+                group = hdf.create_group(group_name)
+                group.create_dataset("t", data=self.t)
+                group.create_dataset("f", data=self.f)
+                group.create_dataset("x", data=self.x)
+                group.create_dataset("v", data=self.v)
+            except:
+                del hdf[group_name]
+                group = hdf.create_group(group_name)
+                group.create_dataset("t", data=self.t)
+                group.create_dataset("f", data=self.f)
+                group.create_dataset("x", data=self.x)
+                group.create_dataset("v", data=self.v)
+            hdf.close()
+        print("data saved")
 
     def plot(self, xyz):
         if xyz == "x":

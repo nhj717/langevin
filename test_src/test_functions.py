@@ -7,10 +7,10 @@ import oam_langevin as oamlan
 def test_field_distribution():
     sim = OAM_profile(*initial_setup(1, [1, 1j]))
     sim.fields()
-    sim.S_and_I()
-    # sim.standing_S_and_I()
+    # sim.S_and_I()
+    sim.standing_S_and_I()
     # sim.plot_field_dist()
-    sim.volume_plot()
+    sim.surface_plot()
 
 
 def test_langevin_eq():
@@ -35,6 +35,10 @@ def test_langevin_averaged():
 def test_oam_langevin():
     sim = oamlan.oam_Langevin(*oamlan.initial_setup())
     sim.langevin_eq()
-    sim.plot_xy_position()
-    sim.plot("x")
-    sim.plot("y")
+    location = "/Users/hnam/Langevin/data"
+    folder_name = "data"
+    group_name = "test"
+    sim.save_data(location, folder_name, group_name)
+    # sim.plot_xy_position()
+    # sim.plot("x")
+    # sim.plot("y")
