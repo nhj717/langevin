@@ -1,4 +1,4 @@
-import __init__
+import initial_setup as inset
 from beam_profile import *
 from langevin_eq import *
 import langevin_averaged as langav
@@ -6,12 +6,13 @@ import oam_langevin as oamlan
 
 
 def test_field_distribution():
-    sim = OAM_profile(*initial_setup(1, [1, 1j]))
-    sim.fields()
+    sim = OAM_profile(*inset.beam_profile_initial_setup(1, [1, 1j]))
     # sim.S_and_I()
     sim.standing_S_and_I()
-    # sim.plot_field_dist()
-    sim.surface_plot()
+    location = "/Users/hnam/pycharm_projects/langevin/data"
+    folder_name = "beam_profile_data"
+    group_name = "test"
+    sim.save_data(location, folder_name, group_name)
 
 
 def test_langevin_eq():
@@ -34,7 +35,7 @@ def test_langevin_averaged():
 
 
 def test_oam_langevin():
-    sim = oamlan.oam_Langevin(*__init__.initial_setup())
+    sim = oamlan.oam_Langevin(*inset.oam_trapping_initial_setup())
     sim.langevin_eq()
     location = "/Users/hnam/pycharm_projects/langevin/data"
     folder_name = "data"
