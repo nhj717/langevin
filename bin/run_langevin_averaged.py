@@ -1,4 +1,4 @@
-from langevin_averaged import *
+from fundamental_langevin import *
 
 sim = Langevin_averaged(100)
 sim.langevin_eq()

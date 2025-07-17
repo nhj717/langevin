@@ -4,31 +4,8 @@ import scipy.fft as fft
 from scipy.special import jn_zeros
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
-import beam_profile
+from optical_force import f_oam_standing_wave
 import h5py
-
-
-def initial_setup():
-    diameter = 400  # in nanometers
-    eps_glass = 3.9
-    power = 400  # in mW from both sides
-    pressure = 1000  # in mbar
-    core_radius = 22  # in um
-    N = int(1e5)  # Total number of sampling
-    delt = 1e-6  # in seconds, time resolution of the simulation
-    iteration = 10  # number of sampling
-    mode_number = 1
-    return (
-        diameter,
-        eps_glass,
-        power,
-        pressure,
-        core_radius,
-        N,
-        delt,
-        iteration,
-        mode_number,
-    )
 
 
 def gamma(radius, density, cross_section, eta, pressure, T):
@@ -45,14 +22,6 @@ def lorentzian(x, x0, a, gamma):
     x = 2 * np.pi * x
     gamma = 2 * np.pi * gamma
     return a * gamma / ((x0**2 - x**2) ** 2 + (x * gamma) ** 2)
-
-
-def coord_trafo(A, theta):
-    B = np.zeros_like(A, dtype="complex128")
-    B[0, :] = A[0, :] * np.cos(theta) + A[1, :] * np.sin(theta)
-    B[1, :] = -A[0, :] * np.sin(theta) + A[1, :] * np.cos(theta)
-    B[2, :] = A[2, :]
-    return B
 
 
 class oam_Langevin:
@@ -99,17 +68,17 @@ class oam_Langevin:
                 / 2
                 * (jn_zeros(mode_number, 1) * self.wl / 2 / np.pi / self.r_core) ** 2
             )
-        )
+        )  # propagation constant of the fiber mode
         alpha0 = (
             4 * np.pi * const.epsilon_0 * radius**3 * (eps_glass - 1) / (eps_glass + 2)
         )
         self.alpha = alpha0 / (
             1 - 1j * alpha0 * self.k**3 / (6 * np.pi * const.epsilon_0)
-        )
+        )  # susceptibility from the dipole approximation
 
-        self.iteration = iteration  # number of iterations
-        self.N = N  # Number of sample points
-        self.delt = delt  # resolution of the time array
+        self.iteration = iteration
+        self.N = N
+        self.delt = delt
         self.t = np.linspace(0, self.N * self.delt, self.N)
         self.f = fft.fftfreq(self.N, self.delt)[: int(self.N / 2)]
         self.f_start = int(np.abs(self.f - 50).argmin())
@@ -119,29 +88,32 @@ class oam_Langevin:
         self.mode_number = mode_number
 
     def langevin_eq(self):
-        print(self.gamma0)
-
         # Optical force
-        f_opt_r, f_opt_phi, f_opt_z = beam_profile.oam_standing_wave(
+        f_opt_r, f_opt_phi, f_opt_z = f_oam_standing_wave(
             self.P, self.r_core, self.alpha, self.beta, self.mode_number
         )
         # Thermal force
         factor = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m)
         f_therm = factor * np.random.randn(self.iteration, 3, self.N)
+
+        # gravity
         gravity = np.array([0, 1, 0]) * np.ones(self.iteration)[:, None] * (-9.8)
 
         x = np.zeros((self.iteration, 3, 2))
         v = np.zeros_like(x)
-        # x[:, :, 0] = [1e-10, 1e-10, 1e-11]
-        # v[:, :, 0] = 0
+
+        # set initial conditions for x and v
         x[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-11
         x[:, 1, 0] += 1e-5
-        v[:, :, 0] = 0 * np.random.randn(self.iteration, 3) * 1e-5
+        v[:, :, 0] = 0
         self.x[:, 0] = np.average(x[:, :, 0], axis=0)
         self.v[:, 0] = np.average(v[:, :, 0], axis=0)
 
         for i in range(self.N - 1):
+            # find theta from the given position
             theta = np.arctan2(x[:, 1, 0], x[:, 0, 0])
+
+            # Calculate for the total optical force in cartesian coordinate
             f_opt = (
                 np.array(
                     [np.cos(theta), np.sin(theta), np.zeros_like(theta)]
@@ -155,17 +127,22 @@ class oam_Langevin:
                 * f_opt_z(x[:, 0, 0], x[:, 1, 0], x[:, 2, 0])[:, None]
             )
 
+            # Euler's method to update for the velocity from the given force
             v[:, :, 1] = v[:, :, 0] + self.delt * (
                 -self.gamma0 * v[:, :, 0]
                 + f_opt / self.m
                 + 0 * f_therm[:, :, i]
                 + gravity
             )
+
+            # Euler's method to update for the position from the given velocity
             x[:, :, 1] = x[:, :, 0] + v[:, :, 1] * self.delt
 
+            # to save memory, current step is averaged over the iteration and saved to self.x and self.v
             self.x[:, i + 1] = np.average(x[:, :, 1], axis=0)
             self.v[:, i + 1] = np.average(v[:, :, 1], axis=0)
 
+            # also within the loop, only the previous step is remembered(Markovian system)
             x[:, :, 0] = x[:, :, 1]
             v[:, :, 0] = v[:, :, 1]
 
@@ -186,90 +163,3 @@ class oam_Langevin:
                 group.create_dataset("v", data=self.v)
             hdf.close()
         print("data saved")
-
-    def plot(self, xyz):
-        if xyz == "x":
-            index = 0
-        elif xyz == "y":
-            index = 1
-        else:
-            index = 2
-        plt.plot(self.t, self.x[index, :])
-        plt.xlabel("Time [s]")
-        plt.ylabel(f"{xyz} [m]")
-        plt.show(block=True)
-        plt.plot(self.x[index, :], self.m * self.v[index, :])
-        plt.xlabel(f"{xyz} [m]")
-        plt.ylabel("P [kg*m/s]")
-        plt.show(block=True)
-
-        x_fft = 2.0 / self.N * fft.fft(self.x[index, :])[: int(self.N / 2)]
-        self.x_fft = abs(x_fft) ** 2
-        plt.plot(self.f, np.log10(x_fft))
-        plt.xlim(0.2, 1000)
-        plt.xlabel("f [Hz]")
-        plt.ylabel("S [a.u.]")
-        plt.show(block=True)
-
-    def plot_xy_position(self):
-        plt.plot(self.x[0, :], self.x[1, :])
-        plt.xlim(-1.5e-5, 1.5e-5)
-        plt.ylim(-1.5e-5, 1.5e-5)
-        plt.show(block=True)
-
-    def plot_spectrums(self):
-        x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
-        x_fft = abs(x_fft) ** 2
-        peak_w_x = self.omega[np.argmax(x_fft)]
-        lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-            lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
-        )
-        x_fft_fit = lorentzian(
-            self.omega,
-            lorentzian_fit_coeff[0],
-            lorentzian_fit_coeff[1],
-            lorentzian_fit_coeff[2],
-        )
-        y_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
-        y_fft = abs(y_fft) ** 2
-        peak_w_y = self.omega[np.argmax(y_fft[self.f_start :])]
-        lorentzian_fit_coeff1, lorentzian_fit_error1 = curve_fit(
-            lorentzian,
-            self.omega[self.f_start :],
-            y_fft[self.f_start :],
-            p0=[peak_w_y, 5e-6, self.gamma0],
-        )
-        y_fft_fit = lorentzian(
-            self.omega,
-            lorentzian_fit_coeff1[0],
-            lorentzian_fit_coeff1[1],
-            lorentzian_fit_coeff1[2],
-        )
-        z_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
-        z_fft = abs(z_fft) ** 2
-        peak_w_z = self.omega[np.argmax(z_fft)]
-        lorentzian_fit_coeff2, lorentzian_fit_error2 = curve_fit(
-            lorentzian, self.omega, z_fft, p0=[peak_w_z, 5e-6, self.gamma0]
-        )
-        z_fft_fit = lorentzian(
-            self.omega,
-            lorentzian_fit_coeff2[0],
-            lorentzian_fit_coeff2[1],
-            lorentzian_fit_coeff2[2],
-        )
-
-        print(
-            f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz for x, {lorentzian_fit_coeff1[2] / (2 * np.pi)}Hz for y and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz for z"
-        )
-
-        plt.plot(self.f * 1e-3, np.log10(x_fft), "orange", label="xfft")
-        plt.plot(self.f * 1e-3, np.log10(x_fft_fit), "red", label="xfft fit")
-        plt.plot(self.f * 1e-3, np.log10(y_fft), "cyan", label="yfft")
-        plt.plot(self.f * 1e-3, np.log10(y_fft_fit), "blue", label="yfft fit")
-        plt.plot(self.f * 1e-3, np.log10(z_fft), "brown", label="zfft")
-        plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "black", label="zfft fit")
-        plt.xlim(0.1, 100)
-        plt.xlabel("f [kHz]")
-        plt.ylabel("S [a.u.]")
-        plt.legend()
-        plt.show(block=True)

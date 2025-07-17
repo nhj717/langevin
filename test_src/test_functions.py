@@ -1,7 +1,7 @@
 import initial_setup as inset
 from beam_profile import *
 from langevin_eq import *
-import langevin_averaged as langav
+import fundamental_langevin as langav
 import oam_langevin as oamlan
 import plot_save
 
