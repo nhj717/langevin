@@ -1,53 +1,60 @@
-def plot_field_dist(self):
+"""
+All of the functions for plotting and saving purpose
+"""
 
-    S = self.S
-    I = self.I
-    xx, yy = np.meshgrid(self.x, self.y, indexing="ij")
+import numpy as np
+import shared_function
+import matplotlib.pyplot as plt
+
+
+def plot_XY_with_Poynting(location, file_name, group_name):
+    # Load data from the saved h5 file
+    data_label, data = shared_function.read_data(location, file_name, group_name)
+    a, x, y, z, S, I = (
+        data[data_label.index("a")],
+        data[data_label.index("x")],
+        data[data_label.index("y")],
+        data[data_label.index("z")],
+        data[data_label.index("S")],
+        data[data_label.index("I")],
+    )
+    xx, yy = np.meshgrid(x * 1e6, y * 1e6, indexing="ij")
     step = 5
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
+    fig, ax = plt.subplots(1, 1, figsize=(7, 6))
 
-    fig.suptitle(f"Poynting vector of OAM")
-
+    # Circle represents the fiber core
     circle = plt.Circle(
-        (0, 0), self.a, fill=False, color="black", linewidth=1, linestyle="--"
+        (0, 0), a * 1e6, fill=False, color="black", linewidth=1, linestyle="--"
     )
-    z_target = 0 * self.lamb / 8
-    zi = (np.abs(self.z - z_target)).argmin()
-    I_max_index = np.argmax(I[int(np.size(self.x) / 2), :, zi])
-    S_r_max = abs(self.S_cyl[0, int(np.size(self.x) / 2), I_max_index, zi])
-    S_theta_max = abs(self.S_cyl[1, int(np.size(self.x) / 2), I_max_index, zi])
-    print(f"Value of S_r is {S_r_max * 1E-19} a.u.")
-    print(f"Value of S_theta is {S_theta_max*1E-19} a.u.")
+    # Normalize intensity
+    I_norm = I[:, :, 0] / np.max(I[:, :, 0])
 
-    I_zi = I[:, :, zi] / np.max(I[:, :, zi])
-    circle2 = plt.Circle(
-        (0, self.y[I_max_index]),
-        self.a / 50,
-        fill=True,
-        color="black",
-        linewidth=1,
-        linestyle="--",
-    )
+    # 2D colormap of the intensity
+    pcm = ax.pcolor(xx, yy, I_norm, cmap="jet")
+    cb = plt.colorbar(pcm, shrink=0.92)
 
-    pcm = ax.pcolor(xx, yy, I_zi, cmap="jet")
-    cb = plt.colorbar(pcm, shrink=0.75)
+    # Quiver(vector) plot of the poynting vector
     vec = ax.quiver(
         xx[::step, ::step],
         yy[::step, ::step],
-        S[0, ::step, ::step, zi],
-        S[1, ::step, ::step, zi],
+        S[0, ::step, ::step, 0],
+        S[1, ::step, ::step, 0],
         color="white",
         # scale=15,
     )
     ax.set(aspect="equal")
     ax.add_patch(circle)
-    ax.add_patch(circle2)
-
+    # plt.xlim(-20, 20)
+    # plt.ylim(-20, 20)
+    plt.title("Norm. Intensity in XY")
+    plt.xlabel(r"x [um]")
+    plt.ylabel(r"y [um]")
+    plt.tight_layout()
     plt.show(block=True)
 
 
-def surface_plot(self):
+def plot_XZ(self):
     I = self.I
     yc = int(np.size(self.z) / 2)
     zc = int(np.size(self.z) / 2)

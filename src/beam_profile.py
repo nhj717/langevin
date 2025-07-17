@@ -13,7 +13,7 @@ from shared_function import coord_trafo
 
 
 class OAM_profile:
-    def __init__(self, wavelength, diameter, mode_number, polarization):
+    def __init__(self, wavelength, diameter, mode_number, polarization,x,y,z):
 
         # set initial values
 
@@ -34,10 +34,9 @@ class OAM_profile:
             * (1 - 1 / 2 * (self.u_lm * self.lamb / 2 / np.pi / self.a) ** 2)
         )                                               #propagation constant in HCF
 
-        ratio = 1.2                                     #range for simulation
-        self.x = np.linspace(-ratio * self.a, ratio * self.a, 100)
-        self.y = np.linspace(-ratio * self.a, ratio * self.a, 100)
-        self.z = np.linspace(-2 * wavelength, 2 * wavelength, 100)
+        self.x = x
+        self.y = y
+        self.z = z
 
 
         #some functions to define electric and magnetic field of the beam
@@ -109,6 +108,7 @@ class OAM_profile:
         B_cart = polarization[0] * Bx + polarization[1] * By
 
         S = np.real(np.cross(E_cart, np.conjugate(B_cart), axis=0))
+        S_cyl = coord_trafo(S, self.ppphi)
         I = np.real(E_cart * np.conjugate(E_cart))
         I = self.c * self.eps0 / 2 * np.sqrt(I[0, :] ** 2 + I[1, :] ** 2 + I[2, :] ** 2)
 
@@ -145,6 +145,7 @@ class OAM_profile:
         with h5py.File("{}/{}.h5".format(location, file_name), "a") as hdf:
             try:
                 group = hdf.create_group(group_name)
+                group.create_dataset('a',data=self.a)
                 group.create_dataset('x',data = self.x)
                 group.create_dataset('y', data=self.y)
                 group.create_dataset('z', data=self.z)
@@ -154,6 +155,7 @@ class OAM_profile:
             except:
                 del hdf[group_name]
                 group = hdf.create_group(group_name)
+                group.create_dataset('a', data=self.a)
                 group.create_dataset('x', data=self.x)
                 group.create_dataset('y', data=self.y)
                 group.create_dataset('z', data=self.z)

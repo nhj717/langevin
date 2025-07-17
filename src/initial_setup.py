@@ -1,10 +1,36 @@
 #Initial setup of different calculations are triggered from here
+import numpy as np
 
-def beam_profile_initial_setup(mode_number, polarization):
+
+def beam_profile_initial_setup_3D(mode_number, polarization):
     wavelength = 1.064e-6
     diameter = 44e-6
-    return wavelength, diameter, mode_number, polarization
+    ratio = 1.2
+    N = 100
+    x = np.linspace(-ratio * diameter/2, ratio * diameter/2, N)
+    y = np.linspace(-ratio * diameter/2, ratio * diameter/2, N)
+    z = np.linspace(-2 * wavelength, 2 * wavelength, N)
+    return wavelength, diameter, mode_number, polarization,x,y,z
 
+def beam_profile_initial_setup_XY(mode_number, polarization):
+    wavelength = 1.064e-6
+    diameter = 44e-6
+    ratio = 1.2
+    N = 100
+    x = np.linspace(-ratio * diameter/2, ratio * diameter/2, N)
+    y = np.linspace(-ratio * diameter/2, ratio * diameter/2, N)
+    z = np.linspace(0, 0, 1)
+    return wavelength, diameter, mode_number, polarization,x,y,z
+
+def beam_profile_initial_setup_XZ(mode_number, polarization):
+    wavelength = 1.064e-6
+    diameter = 44e-6
+    ratio = 1.2
+    N = 100
+    x = np.linspace(-ratio * diameter/2, ratio * diameter/2, N)
+    y = np.linspace(0, 0, 1)
+    z = np.linspace(-2 * wavelength, 2 * wavelength, N)
+    return wavelength, diameter, mode_number, polarization,x,y,z
 
 def oam_trapping_initial_setup():
     diameter = 400  # in nanometers
