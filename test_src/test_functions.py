@@ -35,7 +35,7 @@ def test_langevin_averaged():
 def test_oam_langevin():
     sim = oamlan.oam_Langevin(*oamlan.initial_setup())
     sim.langevin_eq()
-    location = "/Users/hnam/Langevin/data"
+    location = "/Users/hnam/pycharm_projects/langevin/data"
     folder_name = "data"
     group_name = "test"
     sim.save_data(location, folder_name, group_name)

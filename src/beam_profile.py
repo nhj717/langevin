@@ -1,3 +1,8 @@
+"""
+Functions in this folder are used to visualize the beam profiles of LP modes.
+
+"""
+
 import numpy as np
 from scipy import constants as const
 from scipy import special as sp
