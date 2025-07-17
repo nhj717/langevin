@@ -7,7 +7,7 @@ import plot_save
 
 
 def test_field_distribution():
-    sim = OAM_profile(*inset.beam_profile_initial_setup_XY(1, [1, 1j]))
+    sim = OAM_profile(*inset.beam_profile_initial_setup_XZ(1, [1, 1j]))
     # sim.S_and_I()
     sim.standing_S_and_I()
     location = "/Users/hnam/pycharm_projects/langevin/data"
@@ -15,11 +15,12 @@ def test_field_distribution():
     group_name = "test"
     sim.save_data(location, folder_name, group_name)
 
+
 def test_plot_save():
     location = "/Users/hnam/pycharm_projects/langevin/data"
     file_name = "beam_profile_data"
     group_name = "test"
-    plot_save.plot_XY_with_Poynting(location, file_name, group_name)
+    plot_save.plot_XZ(location, file_name, group_name)
 
 
 def test_langevin_eq():
