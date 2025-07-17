@@ -1,3 +1,4 @@
+import __init__
 from beam_profile import *
 from langevin_eq import *
 import langevin_averaged as langav
@@ -33,7 +34,7 @@ def test_langevin_averaged():
 
 
 def test_oam_langevin():
-    sim = oamlan.oam_Langevin(*oamlan.initial_setup())
+    sim = oamlan.oam_Langevin(*__init__.initial_setup())
     sim.langevin_eq()
     location = "/Users/hnam/pycharm_projects/langevin/data"
     folder_name = "data"

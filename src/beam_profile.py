@@ -1,6 +1,6 @@
 """
 Functions in this folder are used to visualize the beam profiles of LP modes.
-
+Direction of the Poynting vector was the main interest in the OAM profile class.
 """
 
 import numpy as np
@@ -16,98 +16,35 @@ def coord_trafo(A, theta):
     B[2, :] = A[2, :]
     return B
 
-
-def initial_setup(mode_number, polarization):
-    wavelength = 1.0e-6
-    diameter = 40e-6
-    return wavelength, diameter, mode_number, polarization
-
-
-def gaussian_standing_wave(P, r_core, alpha, beta):
-    u01 = sp.jn_zeros(0, 1)
-    factor = (
-        2
-        * P
-        * np.real(alpha)
-        / (np.pi * r_core**2 * const.c * const.epsilon_0 * sp.jve(1, u01) ** 2)
-    )
-    f_r = (
-        lambda x, y, z: -2
-        * factor
-        * sp.jve(0, u01 * np.sqrt(x**2 + y**2) / r_core)
-        * sp.jve(1, u01 * np.sqrt(x**2 + y**2) / r_core)
-        * u01
-        / r_core
-        * np.cos(beta * z) ** 2
-    )
-    f_phi = lambda x, y, z: 0
-    f_z = (
-        lambda x, y, z: -factor
-        * sp.jve(0, u01 * np.sqrt(x**2 + y**2) / r_core) ** 2
-        * np.sin(2 * beta * z)
-        * beta
-    )
-    return f_r, f_phi, f_z
-
-
-def oam_standing_wave(P, r_core, alpha, beta, l):
-    ul1 = sp.jn_zeros(l, 1)
-    norm = 1 / (-np.pi * sp.jve(l - 1, ul1) * sp.jve(l + 1, ul1) * r_core**2)
-    factor = 2 * P * norm / const.c / const.epsilon_0
-    f_r = (
-        lambda x, y, z: factor
-        * np.real(alpha)
-        * sp.jve(l, ul1 * np.sqrt(x**2 + y**2) / r_core)
-        * (
-            sp.jve(l - 1, ul1 * np.sqrt(x**2 + y**2) / r_core)
-            - sp.jve(l + 1, ul1 * np.sqrt(x**2 + y**2) / r_core)
-        )
-        * ul1
-        / r_core
-        * np.cos(beta * z) ** 2
-    )
-    f_phi = (
-        lambda x, y, z: factor
-        * l
-        / np.sqrt(x**2 + y**2)
-        * np.imag(alpha)
-        * sp.jve(l, ul1 * np.sqrt(x**2 + y**2) / r_core) ** 2
-        * np.cos(beta * z) ** 2
-    )
-    f_z = (
-        lambda x, y, z: -factor
-        * sp.jve(l, ul1 * np.sqrt(x**2 + y**2) / r_core) ** 2
-        * np.sin(2 * beta * z)
-        * beta
-    )
-    return f_r, f_phi, f_z
-
-
 class OAM_profile:
     def __init__(self, wavelength, diameter, mode_number, polarization):
+
         # set initial values
-        self.c = const.c
-        self.mu0 = const.mu_0
-        self.eps0 = const.epsilon_0
-        self.lamb = wavelength
-        self.k = 2 * np.pi / wavelength
-        self.w0 = self.c * self.k
-        self.a = diameter / 2
-        self.polarization = np.array(polarization)
-        self.l = mode_number
-        self.u_lm = float(sp.jn_zeros(self.l, 1))
+
+        self.c = const.c                                #speed of light
+        self.mu0 = const.mu_0                           #absolute permeabillity
+        self.eps0 = const.epsilon_0                     #absolute permititivity
+        self.lamb = wavelength                          #wavelength
+        self.k = 2 * np.pi / wavelength                 #wave_vector
+        self.w0 = self.c * self.k                       #radial frequency
+        self.a = diameter / 2                           #radius of the core
+        self.polarization = np.array(polarization)      #polarization state(Jones vector form)
+        self.l = mode_number                            #mode number
+        self.u_lm = float(sp.jn_zeros(self.l, 1))   #First root of l_th order bessel
         self.beta = (
             2
             * np.pi
             / self.lamb
             * (1 - 1 / 2 * (self.u_lm * self.lamb / 2 / np.pi / self.a) ** 2)
-        )
+        )                                               #propagation constant in HCF
 
-        ratio = 1.2
+        ratio = 1.2                                     #range for simulation
         self.x = np.linspace(-ratio * self.a, ratio * self.a, 100)
         self.y = np.linspace(-ratio * self.a, ratio * self.a, 100)
         self.z = np.linspace(-2 * wavelength, 2 * wavelength, 100)
 
+
+        #some functions to define electric and magnetic field of the beam
         self.u = lambda r, phi: sp.jve(self.l, self.u_lm * r / self.a) * np.exp(
             1j * self.l * phi
         )
@@ -129,7 +66,11 @@ class OAM_profile:
             + (1j) * self.l * sp.jve(self.l, self.u_lm * r / self.a) * np.cos(phi) / r
         ) * np.exp(1j * self.l * phi)
 
-    def fields(self):
+    def fields_3D(self):
+        """
+        Electric field and magnetic field is calculated in 3D
+        This calculation is heavy so 2D version is recommended for plotting purposes
+        """
         beta = self.beta
         xxx, yyy, zzz = np.meshgrid(self.x, self.y, self.z, indexing="ij")
         rrr = np.sqrt(xxx**2 + yyy**2)
