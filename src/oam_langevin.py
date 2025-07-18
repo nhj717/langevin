@@ -1,9 +1,7 @@
 import numpy as np
 import scipy.constants as const
-import scipy.fft as fft
 from scipy.special import jn_zeros
-from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
+import scipy.fft as fft
 from optical_force import f_oam_standing_wave
 import h5py
 
@@ -15,13 +13,6 @@ def gamma(radius, density, cross_section, eta, pressure, T):
     ck = 1 / (1 + Kn * (1.231 + 0.469 * np.exp(-1.178 / Kn)))
     gamma = 6 * np.pi * eta * radius * ck / mass
     return gamma
-
-
-def lorentzian(x, x0, a, gamma):
-    x0 = 2 * np.pi * x0
-    x = 2 * np.pi * x
-    gamma = 2 * np.pi * gamma
-    return a * gamma / ((x0**2 - x**2) ** 2 + (x * gamma) ** 2)
 
 
 class oam_Langevin:
@@ -104,7 +95,10 @@ class oam_Langevin:
 
         # set initial conditions for x and v
         x[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-11
-        x[:, 1, 0] += 1e-5
+        if self.mode_number == 0:
+            x[:, 1, 0] -= 1e-6
+        else:
+            x[:, 1, 0] += 1e-5
         v[:, :, 0] = 0
         self.x[:, 0] = np.average(x[:, :, 0], axis=0)
         self.v[:, 0] = np.average(v[:, :, 0], axis=0)
@@ -129,10 +123,7 @@ class oam_Langevin:
 
             # Euler's method to update for the velocity from the given force
             v[:, :, 1] = v[:, :, 0] + self.delt * (
-                -self.gamma0 * v[:, :, 0]
-                + f_opt / self.m
-                + 0 * f_therm[:, :, i]
-                + gravity
+                -self.gamma0 * v[:, :, 0] + f_opt / self.m + f_therm[:, :, i] + gravity
             )
 
             # Euler's method to update for the position from the given velocity
@@ -150,6 +141,9 @@ class oam_Langevin:
         with h5py.File("{}/{}.h5".format(location, file_name), "a") as hdf:
             try:
                 group = hdf.create_group(group_name)
+                group.create_dataset("m", data=self.m)
+                group.create_dataset("N", data=self.N)
+                group.create_dataset("gamma0", data=self.gamma0)
                 group.create_dataset("t", data=self.t)
                 group.create_dataset("f", data=self.f)
                 group.create_dataset("x", data=self.x)
@@ -157,9 +151,12 @@ class oam_Langevin:
             except:
                 del hdf[group_name]
                 group = hdf.create_group(group_name)
+                group.create_dataset("m", data=self.m)
+                group.create_dataset("N", data=self.N)
+                group.create_dataset("gamma0", data=self.gamma0)
                 group.create_dataset("t", data=self.t)
                 group.create_dataset("f", data=self.f)
                 group.create_dataset("x", data=self.x)
                 group.create_dataset("v", data=self.v)
             hdf.close()
-        print("data saved")
+        print("success")

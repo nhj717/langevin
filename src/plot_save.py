@@ -3,8 +3,8 @@ All of the functions for plotting and saving purpose
 """
 
 import numpy as np
-from matplotlib.pyplot import tight_layout
-
+import scipy.fft as fft
+from scipy.optimize import curve_fit
 import shared_function
 import matplotlib.pyplot as plt
 
@@ -89,7 +89,6 @@ def plot_XY(location, file_name, group_name):
     plt.title("Norm. Intensity in XY")
     plt.xlabel(r"x [$\mu m$]")
     plt.ylabel(r"y [$\mu m$]")
-    plt.tight_layout()
     plt.show(block=True)
     return fig
 
@@ -119,6 +118,136 @@ def plot_XZ(location, file_name, group_name):
     return fig
 
 
+def plot_package(m, N, t, f, x, v, xyz):
+    if xyz == "x":
+        index = 0
+    elif xyz == "y":
+        index = 1
+    else:
+        index = 2
+
+    # plots the
+    fig1, ax1 = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
+    ax1.plot(t, x[index, :] * 1e9)
+    plt.xlabel("Time [s]")
+    plt.ylabel(f"{xyz} [$nm$]")
+    plt.show(block=True)
+
+    fig2, ax2 = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
+    ax2.plot(x[index, :] * 1e9, m * v[index, :] * 1e21)
+    plt.xlabel(f"{xyz} [$nm$]")
+    plt.ylabel("P [$fg*um/s$]")
+    plt.show(block=True)
+
+    fig3, ax3 = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
+    x_fft = 2.0 / N * fft.fft(x[index, :])[: int(N / 2)]
+    x_fft = abs(x_fft) ** 2
+    ax3.plot(f * 1e-3, np.log10(x_fft))
+    index = 2 * int(x_fft.argmax())
+    if index > np.size(f):
+        plt.xlim(0.2, f[-1] * 1e-3)
+    elif f[index] * 1e-3 < 5:
+        plt.xlim(0.2, 5)
+    else:
+        plt.xlim(0.2, f[index] * 1e-3)
+    plt.xlabel("f [kHz]")
+    plt.ylabel("$log_{10}S$ [a.u.]")
+    plt.show(block=True)
+
+    return fig1, fig2, fig3
+
+
+def plot_particle_xy(x):
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
+    ax.plot(x[0, :], x[1, :])
+    plt.xlim(-1.5e-5, 1.5e-5)
+    plt.ylim(-1.5e-5, 1.5e-5)
+    plt.title("Particle Position in XY plane")
+    plt.xlabel(r"x [$\mu m$]")
+    plt.ylabel(r"x [$\mu m$]")
+    plt.show(block=True)
+    return fig
+
+
+def plot_spectrums(N, gamma0, f, x):
+    omega = 2 * np.pi * f
+    f_start = int(np.abs(f - 50).argmin())
+    x_fft = 2.0 / N * fft.fft(x[0, :])[: int(N / 2)]
+    x_fft = abs(x_fft) ** 2
+    peak_w_x = omega[np.argmax(x_fft)]
+    lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
+        shared_function.lorentzian, omega, x_fft, p0=[peak_w_x, 5e-6, gamma0]
+    )
+    x_fft_fit = shared_function.lorentzian(
+        omega,
+        lorentzian_fit_coeff[0],
+        lorentzian_fit_coeff[1],
+        lorentzian_fit_coeff[2],
+    )
+    y_fft = 2.0 / N * fft.fft(x[1, :])[: int(N / 2)]
+    y_fft = abs(y_fft) ** 2
+    peak_w_y = omega[np.argmax(y_fft[f_start:])]
+    lorentzian_fit_coeff1, lorentzian_fit_error1 = curve_fit(
+        shared_function.lorentzian,
+        omega[f_start:],
+        y_fft[f_start:],
+        p0=[peak_w_y, 5e-6, gamma0],
+    )
+    y_fft_fit = shared_function.lorentzian(
+        omega,
+        lorentzian_fit_coeff1[0],
+        lorentzian_fit_coeff1[1],
+        lorentzian_fit_coeff1[2],
+    )
+    z_fft = 2.0 / N * fft.fft(x[2, :])[: int(N / 2)]
+    z_fft = abs(z_fft) ** 2
+    peak_w_z = omega[np.argmax(z_fft)]
+    lorentzian_fit_coeff2, lorentzian_fit_error2 = curve_fit(
+        shared_function.lorentzian, omega, z_fft, p0=[peak_w_z, 5e-6, gamma0]
+    )
+    z_fft_fit = shared_function.lorentzian(
+        omega,
+        lorentzian_fit_coeff2[0],
+        lorentzian_fit_coeff2[1],
+        lorentzian_fit_coeff2[2],
+    )
+
+    print(
+        f"Actual gamma0 is {gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz for x, {lorentzian_fit_coeff1[2] / (2 * np.pi)}Hz for y and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz for z"
+    )
+    fig, ax = plt.subplots(1, 1, figsize=(8, 5), tight_layout=True)
+    ax.plot(f * 1e-3, np.log10(x_fft), "orange", label="xfft")
+    ax.plot(f * 1e-3, np.log10(x_fft_fit), "red", label="xfft fit")
+    ax.plot(f * 1e-3, np.log10(y_fft), "cyan", label="yfft")
+    ax.plot(f * 1e-3, np.log10(y_fft_fit), "blue", label="yfft fit")
+    ax.plot(f * 1e-3, np.log10(z_fft), "brown", label="zfft")
+    ax.plot(f * 1e-3, np.log10(z_fft_fit), "black", label="zfft fit")
+    plt.xlim(0.1, 100)
+    plt.xlabel("f [kHz]")
+    plt.ylabel("S [a.u.]")
+    plt.legend()
+    plt.show(block=True)
+    return fig
+
+
+def plot_summed_spectrum(N, f, x):
+    x_fft = 2.0 / N * fft.fft(x[0, :])[: int(N / 2)]
+    x_fft = abs(x_fft) ** 2
+    y_fft = 2.0 / N * fft.fft(x[1, :])[: int(N / 2)]
+    y_fft = abs(y_fft) ** 2
+    z_fft = 2.0 / N * fft.fft(x[2, :])[: int(N / 2)]
+    z_fft = abs(z_fft) ** 2
+    total_fft = x_fft + z_fft
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 5), tight_layout=True)
+    ax.plot(f * 1e-3, np.log10(total_fft), "black")
+    plt.xlim(0.1, 100)
+    plt.xlabel("f [kHz]")
+    plt.ylabel("S [a.u.]")
+    plt.show(block=True)
+    return fig
+
+
 def save_figure(
     fig,
     file_name,
@@ -128,93 +257,3 @@ def save_figure(
     image_format = "png"  # e.g .png, .svg, etc.
     fig.savefig(f"{location}/{file_name}.png", format=image_format, dpi=dpi_value)
     print("Image saved")
-
-
-def plot(self, xyz):
-    if xyz == "x":
-        index = 0
-    elif xyz == "y":
-        index = 1
-    else:
-        index = 2
-    plt.plot(self.t, self.x[index, :])
-    plt.xlabel("Time [s]")
-    plt.ylabel(f"{xyz} [m]")
-    plt.show(block=True)
-    plt.plot(self.x[index, :], self.m * self.v[index, :])
-    plt.xlabel(f"{xyz} [m]")
-    plt.ylabel("P [kg*m/s]")
-    plt.show(block=True)
-
-    x_fft = 2.0 / self.N * fft.fft(self.x[index, :])[: int(self.N / 2)]
-    self.x_fft = abs(x_fft) ** 2
-    plt.plot(self.f, np.log10(x_fft))
-    plt.xlim(0.2, 1000)
-    plt.xlabel("f [Hz]")
-    plt.ylabel("S [a.u.]")
-    plt.show(block=True)
-
-
-def plot_xy_position(self):
-    plt.plot(self.x[0, :], self.x[1, :])
-    plt.xlim(-1.5e-5, 1.5e-5)
-    plt.ylim(-1.5e-5, 1.5e-5)
-    plt.show(block=True)
-
-
-def plot_spectrums(self):
-    x_fft = 2.0 / self.N * fft.fft(self.x[0, :])[: int(self.N / 2)]
-    x_fft = abs(x_fft) ** 2
-    peak_w_x = self.omega[np.argmax(x_fft)]
-    lorentzian_fit_coeff, lorentzian_fit_error = curve_fit(
-        lorentzian, self.omega, x_fft, p0=[peak_w_x, 5e-6, self.gamma0]
-    )
-    x_fft_fit = lorentzian(
-        self.omega,
-        lorentzian_fit_coeff[0],
-        lorentzian_fit_coeff[1],
-        lorentzian_fit_coeff[2],
-    )
-    y_fft = 2.0 / self.N * fft.fft(self.x[1, :])[: int(self.N / 2)]
-    y_fft = abs(y_fft) ** 2
-    peak_w_y = self.omega[np.argmax(y_fft[self.f_start :])]
-    lorentzian_fit_coeff1, lorentzian_fit_error1 = curve_fit(
-        lorentzian,
-        self.omega[self.f_start :],
-        y_fft[self.f_start :],
-        p0=[peak_w_y, 5e-6, self.gamma0],
-    )
-    y_fft_fit = lorentzian(
-        self.omega,
-        lorentzian_fit_coeff1[0],
-        lorentzian_fit_coeff1[1],
-        lorentzian_fit_coeff1[2],
-    )
-    z_fft = 2.0 / self.N * fft.fft(self.x[2, :])[: int(self.N / 2)]
-    z_fft = abs(z_fft) ** 2
-    peak_w_z = self.omega[np.argmax(z_fft)]
-    lorentzian_fit_coeff2, lorentzian_fit_error2 = curve_fit(
-        lorentzian, self.omega, z_fft, p0=[peak_w_z, 5e-6, self.gamma0]
-    )
-    z_fft_fit = lorentzian(
-        self.omega,
-        lorentzian_fit_coeff2[0],
-        lorentzian_fit_coeff2[1],
-        lorentzian_fit_coeff2[2],
-    )
-
-    print(
-        f"Actual gamma0 is {self.gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz for x, {lorentzian_fit_coeff1[2] / (2 * np.pi)}Hz for y and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz for z"
-    )
-
-    plt.plot(self.f * 1e-3, np.log10(x_fft), "orange", label="xfft")
-    plt.plot(self.f * 1e-3, np.log10(x_fft_fit), "red", label="xfft fit")
-    plt.plot(self.f * 1e-3, np.log10(y_fft), "cyan", label="yfft")
-    plt.plot(self.f * 1e-3, np.log10(y_fft_fit), "blue", label="yfft fit")
-    plt.plot(self.f * 1e-3, np.log10(z_fft), "brown", label="zfft")
-    plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "black", label="zfft fit")
-    plt.xlim(0.1, 100)
-    plt.xlabel("f [kHz]")
-    plt.ylabel("S [a.u.]")
-    plt.legend()
-    plt.show(block=True)

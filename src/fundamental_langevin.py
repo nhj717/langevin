@@ -4,19 +4,7 @@ import scipy.fft as fft
 from scipy.special import jn_zeros
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
-import beam_profile
-
-
-def initial_setup():
-    diameter = 400  # in nanometers
-    eps_glass = 3.9
-    power = 500  # in mW from both sides
-    pressure = 200  # in mbar
-    core_radius = 22  # in um
-    N = int(1e6)  # Total number of sampling
-    delt = 1e-6  # in seconds, time resolution of the simulation
-    iteration = 20  # number of sampling
-    return diameter, eps_glass, power, pressure, core_radius, N, delt, iteration
+import optical_force
 
 
 def gamma(radius, density, cross_section, eta, pressure, T):
@@ -37,7 +25,16 @@ def lorentzian(x, x0, a, gamma):
 
 class Langevin_averaged:
     def __init__(
-        self, diameter, eps_glass, power, pressure, core_radius, N, delt, iteration
+        self,
+        diameter,
+        eps_glass,
+        power,
+        pressure,
+        core_radius,
+        N,
+        delt,
+        iteration,
+        mode_number,
     ):
         # units
         mW = 1e-3
@@ -86,8 +83,8 @@ class Langevin_averaged:
     def langevin_eq(self):
 
         # Optical force
-        f_opt_r, f_opt_phi, f_opt_z = beam_profile.gaussian_standing_wave(
-            self.P, self.r_core, self.alpha, self.beta
+        f_opt_r, f_opt_phi, f_opt_z = optical_force.f_oam_standing_wave(
+            self.P, self.r_core, self.alpha, self.beta, 0
         )
         # Thermal force
         factor = np.sqrt(2 * const.k * self.T * self.m * self.gamma0)
@@ -148,7 +145,7 @@ class Langevin_averaged:
         x_fft = 2.0 / self.N * fft.fft(self.x[index, :])[: int(self.N / 2)]
         x_fft = abs(x_fft) ** 2
         plt.plot(self.f * 1e-3, np.log10(x_fft))
-        plt.xlim(0.5, 5)
+        plt.xlim(0.5, 100)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.show(block=True)
@@ -208,7 +205,7 @@ class Langevin_averaged:
         plt.plot(self.f * 1e-3, np.log10(y_fft_fit), "blue", label="yfft fit")
         plt.plot(self.f * 1e-3, np.log10(z_fft), "brown", label="zfft")
         plt.plot(self.f * 1e-3, np.log10(z_fft_fit), "black", label="zfft fit")
-        plt.xlim(0.1, 5)
+        plt.xlim(0.1, 100)
         plt.xlabel("f [kHz]")
         plt.ylabel("S [a.u.]")
         plt.legend()

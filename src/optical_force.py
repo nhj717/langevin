@@ -1,7 +1,8 @@
-#Functions for optical forces in cylindrical coordinate
+# Functions for optical forces in cylindrical coordinate
 import scipy.special as sp
 import numpy as np
 import scipy.constants as const
+
 
 def f_gaussian_standing_wave(P, r_core, alpha, beta):
     u01 = sp.jn_zeros(0, 1)
@@ -56,6 +57,7 @@ def f_oam_standing_wave(P, r_core, alpha, beta, l):
     )
     f_z = (
         lambda x, y, z: -factor
+        * np.real(alpha)
         * sp.jve(l, ul1 * np.sqrt(x**2 + y**2) / r_core) ** 2
         * np.sin(2 * beta * z)
         * beta

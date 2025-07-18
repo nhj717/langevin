@@ -1,6 +1,5 @@
 import initial_setup as inset
 from beam_profile import *
-from langevin_eq import *
 import fundamental_langevin as langav
 import oam_langevin as oamlan
 import plot_save
@@ -23,16 +22,8 @@ def test_plot_save():
     plot_save.plot_XZ(location, file_name, group_name)
 
 
-def test_langevin_eq():
-    sim = Langevin()
-    sim.langevin_eq()
-    sim.plot_x()
-    sim.plot_z()
-    sim.plot_spectrums()
-
-
 def test_langevin_averaged():
-    sim = langav.Langevin_averaged(*langav.initial_setup())
+    sim = langav.Langevin_averaged(*inset.oam_trapping_initial_setup())
     sim.langevin_eq()
     sim.plot_xy_position()
     sim.plot("x")
