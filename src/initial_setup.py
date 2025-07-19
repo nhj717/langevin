@@ -39,9 +39,9 @@ def oam_trapping_initial_setup():
     diameter = 400  # particle size in nanometers
     eps_glass = 3.9  # relative permitivity of the glass
     power = 200  # laser power in mW from both sides
-    pressure = 1  # surrounding pressure in mbar
+    pressure = 1000  # surrounding pressure in mbar
     core_radius = 22  # fiber core radius in um
-    N = int(1e5)  # Total number of sampling
+    N = int(1e8)  # Total number of sampling
     delt = 1e-6  # in seconds, time resolution of the simulation
     iteration = 10  # number of iterations that are averaged
     mode_number = 1

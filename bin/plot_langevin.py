@@ -5,11 +5,11 @@ Plot from the saved data of the beam profiles
 import shared_function
 from plot_save import *
 
-mode_number = 0
-power = 200
+mode_number = 1
+power = 45
 pressure = 1
 delt = 1e-6
-N = 1e5
+N = 1e6
 
 location = "/Users/hnam/pycharm_projects/langevin/data"
 file_name = "langevin_data"

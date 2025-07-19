@@ -131,6 +131,7 @@ def plot_package(m, N, t, f, x, v, xyz):
     ax1.plot(t, x[index, :] * 1e9)
     plt.xlabel("Time [s]")
     plt.ylabel(f"{xyz} [$nm$]")
+    plt.xlim(0, 0.05)
     plt.show(block=True)
 
     fig2, ax2 = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
@@ -164,7 +165,7 @@ def plot_particle_xy(x):
     plt.ylim(-1.5e-5, 1.5e-5)
     plt.title("Particle Position in XY plane")
     plt.xlabel(r"x [$\mu m$]")
-    plt.ylabel(r"x [$\mu m$]")
+    plt.ylabel(r"Y [$\mu m$]")
     plt.show(block=True)
     return fig
 
