@@ -21,7 +21,7 @@ sim = oam_Langevin(*inset.oam_trapping_initial_setup())
 ) = inset.oam_trapping_initial_setup()
 sim.langevin_eq()
 end_time = time.time()
-print(f"simulation time was {end_time-start_time}")
+print(f"simulation time was {end_time-start_time}s")
 location = "/Users/hnam/pycharm_projects/langevin/data"
 folder_name = "langevin_data"
 group_name = (

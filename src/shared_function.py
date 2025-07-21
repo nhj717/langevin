@@ -33,3 +33,9 @@ def read_data(location, file_name, group_name):
 
     df.close()
     return data_label, data
+
+
+def check_data(location, file_name):
+    df = h5py.File("{}/{}.h5".format(location, file_name), "r")
+    names = list(df.keys())
+    print(*names, sep="\n")

@@ -7,6 +7,7 @@ import scipy.fft as fft
 from scipy.optimize import curve_fit
 import shared_function
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 
 def plot_XY_with_Poynting(location, file_name, group_name):
@@ -119,6 +120,7 @@ def plot_XZ(location, file_name, group_name):
 
 
 def plot_package(m, N, t, f, x, v, xyz):
+    n = 10  # plot every n_th point wheen the data gets large
     if xyz == "x":
         index = 0
     elif xyz == "y":
@@ -127,45 +129,56 @@ def plot_package(m, N, t, f, x, v, xyz):
         index = 2
 
     # plots the
+
     fig1, ax1 = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
-    ax1.plot(t, x[index, :] * 1e9)
+    mpl.rcParams["agg.path.chunksize"] = 10000
+    ax1.plot(t[::n], x[index, :][::n] * 1e6)
+    plt.title(f"{xyz} vs t")
     plt.xlabel("Time [s]")
-    plt.ylabel(f"{xyz} [$nm$]")
-    plt.xlim(0, 0.05)
+    plt.ylabel(f"{xyz} [$\mu m$]")
+    plt.xlim(0, 0.01)
     plt.show(block=True)
 
     fig2, ax2 = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
-    ax2.plot(x[index, :] * 1e9, m * v[index, :] * 1e21)
-    plt.xlabel(f"{xyz} [$nm$]")
+    mpl.rcParams["agg.path.chunksize"] = 10000
+    ax2.plot(x[index, :][::n] * 1e6, m * v[index, :][::n] * 1e21)
+    plt.title(f"$P_{xyz}$ vs {xyz}")
+    plt.xlabel(f"{xyz} [$\mu m$]")
     plt.ylabel("P [$fg*um/s$]")
     plt.show(block=True)
 
     fig3, ax3 = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
+    mpl.rcParams["agg.path.chunksize"] = 10000
     x_fft = 2.0 / N * fft.fft(x[index, :])[: int(N / 2)]
     x_fft = abs(x_fft) ** 2
+    # stop_index = int(np.abs(f - 10).argmin())
     ax3.plot(f * 1e-3, np.log10(x_fft))
     index = 2 * int(x_fft.argmax())
     if index > np.size(f):
-        plt.xlim(0.2, f[-1] * 1e-3)
+        plt.xlim(0, f[-1] * 1e-3)
     elif f[index] * 1e-3 < 5:
-        plt.xlim(0.2, 5)
+        plt.xlim(0, 5)
+        # plt.xlim(0, 5)
     else:
-        plt.xlim(0.2, f[index] * 1e-3)
+        plt.xlim(0, f[index] * 1e-3)
+    plt.title(f"$S_{xyz}$ vs f")
     plt.xlabel("f [kHz]")
-    plt.ylabel("$log_{10}S$ [a.u.]")
+    plt.ylabel(f"$log_{'10'}S_{xyz}$ [a.u.]")
     plt.show(block=True)
 
     return fig1, fig2, fig3
 
 
 def plot_particle_xy(x):
+    n = 10  # plot every nth point when the data gets large
     fig, ax = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
-    ax.plot(x[0, :], x[1, :])
-    plt.xlim(-1.5e-5, 1.5e-5)
-    plt.ylim(-1.5e-5, 1.5e-5)
-    plt.title("Particle Position in XY plane")
+    mpl.rcParams["agg.path.chunksize"] = 10000
+    ax.plot(x[0, :][::n] * 1e6, x[1, :][::n] * 1e6)
+    plt.xlim(-15, 15)
+    plt.ylim(-15, 15)
+    plt.title("Particle Position in the XY plane")
     plt.xlabel(r"x [$\mu m$]")
-    plt.ylabel(r"Y [$\mu m$]")
+    plt.ylabel(r"y [$\mu m$]")
     plt.show(block=True)
     return fig
 
@@ -217,6 +230,7 @@ def plot_spectrums(N, gamma0, f, x):
         f"Actual gamma0 is {gamma0 / (2 * np.pi)}Hz and the calculated gamma0 is {lorentzian_fit_coeff[2] / (2 * np.pi)}Hz for x, {lorentzian_fit_coeff1[2] / (2 * np.pi)}Hz for y and {lorentzian_fit_coeff2[2] / (2 * np.pi)}Hz for z"
     )
     fig, ax = plt.subplots(1, 1, figsize=(8, 5), tight_layout=True)
+    mpl.rcParams["agg.path.chunksize"] = 10000
     ax.plot(f * 1e-3, np.log10(x_fft), "orange", label="xfft")
     ax.plot(f * 1e-3, np.log10(x_fft_fit), "red", label="xfft fit")
     ax.plot(f * 1e-3, np.log10(y_fft), "cyan", label="yfft")
@@ -241,8 +255,9 @@ def plot_summed_spectrum(N, f, x):
     total_fft = x_fft + z_fft
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 5), tight_layout=True)
+    mpl.rcParams["agg.path.chunksize"] = 10000
     ax.plot(f * 1e-3, np.log10(total_fft), "black")
-    plt.xlim(0.1, 100)
+    plt.xlim(0, 10)
     plt.xlabel("f [kHz]")
     plt.ylabel("S [a.u.]")
     plt.show(block=True)

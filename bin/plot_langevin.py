@@ -6,7 +6,7 @@ import shared_function
 from plot_save import *
 
 mode_number = 1
-power = 45
+power = 200
 pressure = 1
 delt = 1e-6
 N = 1e6
