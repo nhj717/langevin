@@ -1,4 +1,5 @@
 import initial_setup as inset
+import shared_function
 from beam_profile import *
 import fundamental_langevin as langav
 import oam_langevin as oamlan
@@ -43,3 +44,9 @@ def test_oam_langevin():
     # sim.plot_xy_position()
     # sim.plot("x")
     # sim.plot("y")
+
+
+def test_check_data_list():
+    location = "/Users/hnam/pycharm_projects/langevin/data"
+    file_name = "langevin_data"
+    shared_function.check_data(location, file_name)

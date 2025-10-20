@@ -6,10 +6,10 @@ import shared_function
 from plot_save import *
 
 mode_number = 0
-power = 150
-pressure = 2
+power = 200
+pressure = 1
 delt = 1e-6
-N = 1e6
+N = 1e5
 
 location = "/Users/hnam/pycharm_projects/langevin/data"
 file_name = "langevin_data"
