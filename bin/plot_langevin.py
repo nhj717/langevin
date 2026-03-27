@@ -6,10 +6,10 @@ import shared_function
 from plot_save import *
 
 mode_number = 0
-power = 200
-pressure = 1
-delt = 1e-6
-N = 1e5
+power = 300
+pressure = 1000
+delt = 1e-7
+N = 1e6
 
 location = "/Users/hnam/pycharm_projects/langevin/data"
 file_name = "langevin_data"
@@ -31,32 +31,32 @@ m, N, gamma0, t, f, x, v = (
 fig1, fig2, fig3 = plot_package(m, N, t, f, x, v, "x")
 image_name1, image_name2, image_name3 = "x_vs_t", "p_x_vs_x", "xfft_vs_f"
 
-save_figure(fig1, image_name1)
-save_figure(fig2, image_name2)
-save_figure(fig3, image_name3)
+# save_figure(fig1, image_name1)
+# save_figure(fig2, image_name2)
+# save_figure(fig3, image_name3)
 
-fig4, fig5, fig6 = plot_package(m, N, t, f, x, v, "y")
-image_name4, image_name5, image_name6 = "y_vs_t", "p_y_vs_y", "yfft_vs_f"
+# fig4, fig5, fig6 = plot_package(m, N, t, f, x, v, "y")
+# image_name4, image_name5, image_name6 = "y_vs_t", "p_y_vs_y", "yfft_vs_f"
 
-save_figure(fig4, image_name4)
-save_figure(fig5, image_name5)
-save_figure(fig6, image_name6)
+# save_figure(fig4, image_name4)
+# save_figure(fig5, image_name5)
+# save_figure(fig6, image_name6)
 
-fig7, fig8, fig9 = plot_package(m, N, t, f, x, v, "z")
-image_name7, image_name8, image_name9 = "z_vs_t", "p_z_vs_z", "zfft_vs_f"
+# fig7, fig8, fig9 = plot_package(m, N, t, f, x, v, "z")
+# image_name7, image_name8, image_name9 = "z_vs_t", "p_z_vs_z", "zfft_vs_f"
 
-save_figure(fig7, image_name7)
-save_figure(fig8, image_name8)
-save_figure(fig9, image_name9)
+# save_figure(fig7, image_name7)
+# save_figure(fig8, image_name8)
+# save_figure(fig9, image_name9)
 
 fig = plot_particle_xy(x)
 image_name = "xy_position"
 save_figure(fig, image_name)
 
-fig = plot_spectrums(N, gamma0, f, x)
-image_name = "mixed_spectrum"
-save_figure(fig, image_name)
-
-fig = plot_summed_spectrum(N, f, x)
-image_name = "summed_spectrum"
-save_figure(fig, image_name)
+# fig = plot_spectrums(N, gamma0, f, x)
+# image_name = "mixed_spectrum"
+# save_figure(fig, image_name)
+#
+# fig = plot_summed_spectrum(N, f, x)
+# image_name = "summed_spectrum"
+# save_figure(fig, image_name)

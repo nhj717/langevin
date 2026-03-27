@@ -13,7 +13,9 @@ def beam_profile_initial_setup_3D(mode_number, polarization):
     return wavelength, diameter, mode_number, polarization, x, y, z
 
 
-def beam_profile_initial_setup_XY(mode_number, polarization):
+def beam_profile_initial_setup_XY(
+    mode_number1, mode_number2, polarization1, polarization2
+):
     wavelength = 1.064e-6  # laser wavelength
     diameter = 44e-6  # diamber of the fiber core
     ratio = 1.2  # ratio for the range
@@ -21,10 +23,22 @@ def beam_profile_initial_setup_XY(mode_number, polarization):
     x = np.linspace(-ratio * diameter / 2, ratio * diameter / 2, N)
     y = np.linspace(-ratio * diameter / 2, ratio * diameter / 2, N)
     z = np.linspace(0, 0, 1)
-    return wavelength, diameter, mode_number, polarization, x, y, z
+    return (
+        wavelength,
+        diameter,
+        mode_number1,
+        mode_number2,
+        polarization1,
+        polarization2,
+        x,
+        y,
+        z,
+    )
 
 
-def beam_profile_initial_setup_XZ(mode_number, polarization):
+def beam_profile_initial_setup_XZ(
+    mode_number1, mode_number2, polarization1, polarization2
+):
     wavelength = 1.064e-6  # laser wavelength
     diameter = 44e-6  # diamber of the fiber core
     ratio = 1.2  # ratio for the range
@@ -32,19 +46,29 @@ def beam_profile_initial_setup_XZ(mode_number, polarization):
     x = np.linspace(-ratio * diameter / 2, ratio * diameter / 2, N)
     y = np.linspace(0, 0, 1)
     z = np.linspace(-2 * wavelength, 2 * wavelength, N)
-    return wavelength, diameter, mode_number, polarization, x, y, z
+    return (
+        wavelength,
+        diameter,
+        mode_number1,
+        mode_number2,
+        polarization1,
+        polarization2,
+        x,
+        y,
+        z,
+    )
 
 
 def oam_trapping_initial_setup():
-    diameter = 400  # particle size in nanometers
+    diameter = 300  # particle size in nanometers
     eps_glass = 3.9  # relative permitivity of the glass
-    power = 200  # laser power in mW from both sides
-    pressure = 1  # surrounding pressure in mbar
+    power = 300  # laser power in mW from both sides
+    pressure = 1000  # surrounding pressure in mbar
     core_radius = 22  # fiber core radius in um
-    N = int(1e5)  # Total number of sampling
-    delt = 1e-6  # in seconds, time resolution of the simulation
+    N = int(1e6)  # Total number of sampling
+    delt = 1e-7  # in seconds, time resolution of the simulation
     iteration = 10  # number of iterations that are averaged
-    mode_number = 1
+    mode_number = 0
     return (
         diameter,
         eps_glass,

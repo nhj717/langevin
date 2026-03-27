@@ -2,8 +2,7 @@ import numpy as np
 import scipy.constants as const
 from scipy.special import jn_zeros
 import scipy.fft as fft
-from optical_force import f_oam_standing_wave
-import tqdm
+from optical_force import f_opt_general
 import h5py
 
 
@@ -16,7 +15,7 @@ def gamma(radius, density, cross_section, eta, pressure, T):
     return gamma
 
 
-class oam_Langevin:
+class general_Langevin:
     def __init__(
         self,
         diameter,
@@ -27,7 +26,8 @@ class oam_Langevin:
         N,
         delt,
         iteration,
-        mode_number,
+        mode_number1,
+        mode_number2,
     ):
         # units
         mW = 1e-3
@@ -50,7 +50,7 @@ class oam_Langevin:
         self.gamma0 = gamma(radius, density, cross_section, eta, pressure, self.T)
         self.P = power * mW  # power on each side
         self.r_core = core_radius * um
-        self.beta = (
+        self.beta1 = (
             2
             * np.pi
             / self.wl
@@ -58,9 +58,21 @@ class oam_Langevin:
                 1
                 - 1
                 / 2
-                * (jn_zeros(mode_number, 1) * self.wl / 2 / np.pi / self.r_core) ** 2
+                * (jn_zeros(mode_number1, 1) * self.wl / 2 / np.pi / self.r_core) ** 2
             )
         )  # propagation constant of the fiber mode
+        self.beta2 = (
+            2
+            * np.pi
+            / self.wl
+            * (
+                1
+                - 1
+                / 2
+                * (jn_zeros(mode_number2, 1) * self.wl / 2 / np.pi / self.r_core) ** 2
+            )
+        )  # propagation constant of the fiber mode
+
         alpha0 = (
             4 * np.pi * const.epsilon_0 * radius**3 * (eps_glass - 1) / (eps_glass + 2)
         )
@@ -77,12 +89,19 @@ class oam_Langevin:
         self.omega = 2 * np.pi * self.f
         self.x = np.zeros((3, self.N))
         self.v = np.zeros_like(self.x)
-        self.mode_number = mode_number
+        self.mode_number1 = mode_number1
+        self.mode_number2 = mode_number2
 
     def langevin_eq(self):
         # Optical force
-        f_opt_r, f_opt_phi, f_opt_z = f_oam_standing_wave(
-            self.P, self.r_core, self.alpha, self.beta, self.mode_number
+        f_opt_r, f_opt_phi, f_opt_z = f_opt_general(
+            self.P,
+            self.r_core,
+            self.alpha,
+            self.beta1,
+            self.mode_number1,
+            self.beta2,
+            self.mode_number2,
         )
         # Thermal force
         factor = np.sqrt(2 * const.k * self.T * self.gamma0 / self.m)
@@ -96,19 +115,12 @@ class oam_Langevin:
 
         # set initial conditions for x and v
         x[:, :, 0] = np.random.randn(self.iteration, 3) * 1e-11
-        if self.mode_number == 0:
-            x[:, 0, 0] += 0e-6
-            x[:, 1, 0] -= 0.258e-6
-        else:
-            x[:, 1, 0] += 4.62e-6
+        x[:, 1, 0] += 4.62e-6
         v[:, :, 0] = 0
         self.x[:, 0] = np.average(x[:, :, 0], axis=0)
         self.v[:, 0] = np.average(v[:, :, 0], axis=0)
 
-        progress_bar = tqdm.tqdm(total=self.N * self.delt, unit="s")
         for i in range(self.N - 1):
-            progress_bar.n = round(i * self.delt, 3)
-            progress_bar.update(0)
             # find theta from the given position
             theta = np.arctan2(x[:, 1, 0], x[:, 0, 0])
 

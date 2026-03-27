@@ -4,6 +4,7 @@ All of the functions for plotting and saving purpose
 
 import numpy as np
 import scipy.fft as fft
+from matplotlib.pyplot import tight_layout
 from scipy.optimize import curve_fit
 import shared_function
 import matplotlib.pyplot as plt
@@ -57,6 +58,59 @@ def plot_XY_with_Poynting(location, file_name, group_name):
     return fig
 
 
+def plot_1D(location, file_name, group_name):
+    # Load data from the saved h5 file
+    data_label, data = shared_function.read_data(location, file_name, group_name)
+    a, x, y, z, S, I = (
+        data[data_label.index("a")],
+        data[data_label.index("x")],
+        data[data_label.index("y")],
+        data[data_label.index("z")],
+        data[data_label.index("S")],
+        data[data_label.index("I")],
+    )
+    # plt.rcParams.update(
+    #     {
+    #         "font.family": "sans-serif",
+    #         "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+    #         "mathtext.fontset": "stix",
+    #         "font.size": 20,
+    #         "axes.labelsize": 20,
+    #         "axes.titlesize": 20,
+    #         "xtick.labelsize": 20,
+    #         "ytick.labelsize": 20,
+    #         "legend.fontsize": 16,
+    #         "axes.linewidth": 0.6,
+    #         "xtick.direction": "in",
+    #         "ytick.direction": "in",
+    #         "xtick.major.size": 6,
+    #         "ytick.major.size": 6,
+    #         "xtick.minor.size": 3,
+    #         "ytick.minor.size": 3,
+    #         "figure.dpi": 300,
+    #         "savefig.dpi": 600,
+    #         "savefig.bbox": "tight",
+    #     }
+    # )
+
+    # ------------------------------
+    fig, ax = plt.subplots(figsize=(5, 3), tight_layout=True)  # square figure
+
+    # Normalize intensity
+    I_norm = I[:, :, 0] / np.max(I[:, :, 0])
+    I_plot = I_norm[:, int(np.size(I_norm, 1) / 2) + 1]
+    maxima = np.argmax(I_plot)
+    print(f"maximum at x = {x[maxima]*1e6}um")
+
+    # 2D colormap of the intensity
+    ax.plot(x * 1e6, I_plot)
+    plt.xlabel(r"x [$\mu m$]")
+    plt.ylabel(r"Norm. Intensity")
+    plt.tight_layout()
+    plt.show(block=True)
+    return fig
+
+
 def plot_XY(location, file_name, group_name):
     # Load data from the saved h5 file
     data_label, data = shared_function.read_data(location, file_name, group_name)
@@ -69,27 +123,51 @@ def plot_XY(location, file_name, group_name):
         data[data_label.index("I")],
     )
     xx, yy = np.meshgrid(x * 1e6, y * 1e6, indexing="ij")
+    # plt.rcParams.update(
+    #     {
+    #         "font.family": "sans-serif",
+    #         "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+    #         "mathtext.fontset": "stix",
+    #         "font.size": 20,
+    #         "axes.labelsize": 20,
+    #         "axes.titlesize": 20,
+    #         "xtick.labelsize": 20,
+    #         "ytick.labelsize": 20,
+    #         "legend.fontsize": 16,
+    #         "axes.linewidth": 0.6,
+    #         "xtick.direction": "in",
+    #         "ytick.direction": "in",
+    #         "xtick.major.size": 6,
+    #         "ytick.major.size": 6,
+    #         "xtick.minor.size": 3,
+    #         "ytick.minor.size": 3,
+    #         "figure.dpi": 300,
+    #         "savefig.dpi": 600,
+    #         "savefig.bbox": "tight",
+    #     }
+    # )
 
-    fig, ax = plt.subplots(1, 1, figsize=(7, 6), tight_layout=True)
+    # ------------------------------
+    fig, ax = plt.subplots(figsize=(5, 5), tight_layout=True)  # square figure
 
     # Circle represents the fiber core
     circle = plt.Circle(
-        (0, 0), a * 1e6, fill=False, color="black", linewidth=1, linestyle="--"
+        (0, 0), a * 1e6, fill=False, color="white", linewidth=1, linestyle="--"
     )
     # Normalize intensity
     I_norm = I[:, :, 0] / np.max(I[:, :, 0])
 
     # 2D colormap of the intensity
-    pcm = ax.pcolor(xx, yy, I_norm, cmap="jet")
-    cb = plt.colorbar(pcm, shrink=0.92)
+    pcm = ax.pcolor(xx, yy, I_norm, cmap="hot")
+    # cb = plt.colorbar(pcm, shrink=0.92)
 
-    ax.set(aspect="equal")
     ax.add_patch(circle)
     # plt.xlim(-20, 20)
     # plt.ylim(-20, 20)
-    plt.title("Norm. Intensity in XY")
+    # plt.title("Norm. Intensity in XY")
     plt.xlabel(r"x [$\mu m$]")
     plt.ylabel(r"y [$\mu m$]")
+    plt.tight_layout()
     plt.show(block=True)
     return fig
 
@@ -106,13 +184,38 @@ def plot_XZ(location, file_name, group_name):
         data[data_label.index("I")],
     )
     zz, xx = np.meshgrid(z * 1e6, x * 1e6, indexing="ij")
-    fig, ax = plt.subplots(1, 1, figsize=(8, 5), tight_layout=True)
-    pcm = ax.pcolor(zz, xx, I[:, 0, :].T / I[:, 0, :].max(), cmap="jet")
-    cb = plt.colorbar(pcm, shrink=0.6)
-    ax.set_box_aspect(0.5)
+    # plt.rcParams.update(
+    #     {
+    #         "font.family": "sans-serif",
+    #         "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+    #         "mathtext.fontset": "stix",
+    #         "font.size": 20,
+    #         "axes.labelsize": 20,
+    #         "axes.titlesize": 20,
+    #         "xtick.labelsize": 20,
+    #         "ytick.labelsize": 20,
+    #         "legend.fontsize": 16,
+    #         "axes.linewidth": 0.6,
+    #         "xtick.direction": "in",
+    #         "ytick.direction": "in",
+    #         "xtick.major.size": 6,
+    #         "ytick.major.size": 6,
+    #         "xtick.minor.size": 3,
+    #         "ytick.minor.size": 3,
+    #         "figure.dpi": 300,
+    #         "savefig.dpi": 600,
+    #         "savefig.bbox": "tight",
+    #     }
+    # )
+    # ------------------------------
+    fig, ax = plt.subplots(figsize=(6, 3), tight_layout=True)  # square figure
+    pcm = ax.pcolor(zz, xx, I[:, 0, :].T / I[:, 0, :].max(), cmap="hot")
+    cb = plt.colorbar(pcm)
+    cb.set_ticks([])
+    # ax.set_box_aspect(0.2)
     plt.xlim(-1.2, 1.2)
     plt.ylim(-20, 20)
-    plt.title("Norm. Intensity in XZ")
+    # plt.title("Norm. Intensity in XZ")
     plt.xlabel(r"z [$\mu m$]")
     plt.ylabel(r"x [$\mu m$]")
     plt.show(block=True)
@@ -136,7 +239,7 @@ def plot_package(m, N, t, f, x, v, xyz):
     plt.title(f"{xyz} vs t")
     plt.xlabel("Time [s]")
     plt.ylabel(f"{xyz} [$\mu m$]")
-    plt.xlim(0, 0.01)
+    plt.xlim(0, 0.1)
     plt.show(block=True)
 
     fig2, ax2 = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
@@ -174,8 +277,8 @@ def plot_particle_xy(x):
     fig, ax = plt.subplots(1, 1, figsize=(5, 5), tight_layout=True)
     mpl.rcParams["agg.path.chunksize"] = 10000
     ax.plot(x[0, :][::n] * 1e6, x[1, :][::n] * 1e6)
-    plt.xlim(-15, 15)
-    plt.ylim(-15, 15)
+    # plt.xlim(-15, 15)
+    # plt.ylim(-15, 15)
     plt.title("Particle Position in the XY plane")
     plt.xlabel(r"x [$\mu m$]")
     plt.ylabel(r"y [$\mu m$]")
